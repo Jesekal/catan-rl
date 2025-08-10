@@ -32,4 +32,25 @@ for r, count in enumerate(building_nodes_per_row):
         G.add_node(node_name, node_type="building", owner=None, building_type=None)
 
 print(f"Total buildingsalots: {len(G.nodes)}")
-print("Test som nodes:", list(G.nodes)[:80])
+print("Test some nodes:", list(G.nodes)[:80])
+
+def print_building_nodes():
+    """Prints the building nodes structure in a readable format."""
+    empty_space = " " * 2
+    print("Building nodes:")
+    for row, column in enumerate(building_nodes_per_row):
+        s_to_print = ""
+        s_to_print += "____" * (7 - (column))
+        for col in range(column):
+            if row < 10:
+                node_name = f"B-0{row}-{col}"
+            else:
+                node_name = f"B-{row}-{col}"
+            s_to_print += f"{node_name}{empty_space}"
+        print(s_to_print.strip())
+
+# Example usage
+if __name__ == "__main__":
+    print_building_nodes()
+    print(f"Total building nodes: {len(G.nodes)}")
+    print("Graph structure:", G.edges(data=True))

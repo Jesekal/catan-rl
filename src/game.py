@@ -28,6 +28,14 @@ G = nx.Graph()
 
 def get_building_node_name(row, col):
     """Returns the standardized building node name."""
+    if row < 0 or col < 0:
+        raise ValueError("Row and column indices must be non-negative.")
+    if row >= len(BUILDING_NODES_PER_ROW) or col >= BUILDING_NODES_PER_ROW[row]:
+        raise ValueError("Row or column index out of bounds for building nodes.")
+    if col < 10:
+        col = f"0{col}"
+    if row < 10:
+        row = f"0{row}"
     return f"B-{row}-{col}"
 
 def get_land_node_name(row, col):
@@ -60,7 +68,7 @@ def create_road_edges():
                     G.add_edge(node_name, next_node_name, owner=None)
             else:
                 # First half of even-value-rows will always connenct to two nodes on the next row
-                if r < len(BUILDING_NODES_PER_ROW):
+                if r < len(BUILDING_NODES_PER_ROW) // 2:
                     for c in range(count):
                         node_name = get_building_node_name(r, c)
                         next_node_name_left = get_building_node_name(r + 1, c)
@@ -69,12 +77,12 @@ def create_road_edges():
                         G.add_edge(node_name, next_node_name_right, owner=None)
                 else:
                     for c in range(count):
-                        node_name = f"B-{r}-{c}"
+                        node_name = get_building_node_name(r, c)
                         if c < count - 1:
                             next_node_name_right = get_building_node_name(r + 1, c)
                             G.add_edge(node_name, next_node_name_right, owner=None)
                         if c > 0:
-                            next_node_name_left = get_building_node_name(r + 1, c + 1)
+                            next_node_name_left = get_building_node_name(r + 1, c - 1)
                             G.add_edge(node_name, next_node_name_left, owner=None)
                         
 

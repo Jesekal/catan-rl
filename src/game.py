@@ -18,12 +18,22 @@ class BuildingType(Enum):
     VILLAGE = auto()
     CITY = auto()
 
-# --- Create graph ---
-G = nx.Graph()
+# --- Constants ---
 
-BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 7, 7, 6, 6, 5, 5, 4, 4, 3]
-LAND_NODES_PER_ROW = [3, 4, 5, 6, 5, 4, 3, 2]
+SIXPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 7, 7, 6, 6, 5, 5, 4, 4, 3]
+SIXPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 6, 5, 4, 3]
+FOURPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 5, 5, 4, 4, 3]
+FOURPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 4, 3]
+six_player_game = False  
 
+if six_player_game:
+    BUILDING_NODES_PER_ROW = SIXPLAYER_BUILDING_NODES_PER_ROW
+    LAND_NODES_PER_ROW = SIXPLAYER_LAND_NODES_PER_ROW
+else:
+    BUILDING_NODES_PER_ROW = FOURPLAYER_BUILDING_NODES_PER_ROW
+    LAND_NODES_PER_ROW = FOURPLAYER_LAND_NODES_PER_ROW
+
+# --- Graph Initialization ---
 G = nx.Graph()
 
 def get_building_node_name(row, col):
@@ -85,13 +95,15 @@ def create_road_edges():
                             next_node_name_left = get_building_node_name(r + 1, c - 1)
                             G.add_edge(node_name, next_node_name_left, owner=None)
                         
+def create_land_edges():
+    """Creates edges between land nodes and building nodes to represent adjacent land tiles for buildings."""
+    pass # Placeholder for future implementation
 
 
-
-                
+# --- Functions to print the graph structure --- 
 
 def print_building_nodes():
-    """Prints the building nodes structure in a readable format using actual nodes."""
+    """Prints the building nodes structure in a readable format"""
     empty_space = " " * 2
     print("Building nodes:")
     for row, count in enumerate(BUILDING_NODES_PER_ROW):
@@ -104,25 +116,25 @@ def print_building_nodes():
         print(s_to_print.strip())
 
 def print_land_nodes():
-    """Prints the land nodes structure in a readable format using actual nodes."""
+    """Prints the land nodes structure in a readable format"""
     empty_space = " " * 2
     print("Land nodes:")
     for row, count in enumerate(LAND_NODES_PER_ROW):
         s_to_print = ""
         s_to_print += "____" * (7 - count)
         for col in range(count):
-            node_name = f"L-{row}-{col}"
+            node_name = get_land_node_name(row, col)
             if node_name in G.nodes:
                 s_to_print += f"{node_name}{empty_space}"
         print(s_to_print.strip())
 
 
-# Example usage
+# Testing
 if __name__ == "__main__":
     create_building_nodes()
     create_land_nodes()
     create_road_edges()
     print_building_nodes()
-    #print_land_nodes()
+    print_land_nodes()
     #print(f"Total nodes: {len(G.nodes)}")
-    print("Graph structure:", G.edges(data=True))
+    #print("Graph structure:", G.edges(data=True))

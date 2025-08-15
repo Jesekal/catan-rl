@@ -39,9 +39,9 @@ G = nx.Graph()
 def get_building_node_name(row, col):
     """Returns the standardized building node name."""
     if row < 0 or col < 0:
-        raise ValueError("Row and column indices must be non-negative.")
+        raise ValueError(f"Row and column indices must be non-negative. Row: {row}, Column: {col}")
     if row >= len(BUILDING_NODES_PER_ROW) or col >= BUILDING_NODES_PER_ROW[row]:
-        raise ValueError("Row or column index out of bounds for building nodes.")
+        raise ValueError(f"Row or column index out of bounds for building nodes. Row: {row}, Column: {col}, Max Row: {len(BUILDING_NODES_PER_ROW)}, Max Column: {BUILDING_NODES_PER_ROW[row]}")
     if col < 10:
         col = f"0{col}"
     if row < 10:
@@ -50,6 +50,10 @@ def get_building_node_name(row, col):
 
 def get_land_node_name(row, col):
     """Returns the standardized land node name."""
+    if row < 0 or col < 0:
+        raise ValueError(f"Row and column indices must be non-negative. Row: {row}, Column: {col}")
+    if row >= len(LAND_NODES_PER_ROW) or col >= LAND_NODES_PER_ROW[row]:
+        raise ValueError(f"Row or column index out of bounds for land nodes. Row: {row}, Column: {col}, Max Row: {len(LAND_NODES_PER_ROW)}, Max Column: {LAND_NODES_PER_ROW[row]}")
     return f"L-{row}-{col}"
 
 def create_building_nodes():

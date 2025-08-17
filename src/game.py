@@ -22,16 +22,26 @@ class BuildingType(Enum):
 
 SIXPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 7, 7, 6, 6, 5, 5, 4, 4, 3]
 SIXPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 6, 5, 4, 3]
+SIXPLAYER_LANDTILES = {TileType.FOREST: 6, TileType.FIELD: 6, TileType.MOUNTAIN: 5, TileType.HILL: 5, TileType.PASTURE: 6, TileType.DESERT: 2}
+SIXPLAYER_LANDTILES_VALUES = {2: 2, 12: 2, 3: 3, 4: 3, 5: 3, 6: 3, 8: 3, 9: 3, 10: 3, 11: 3}
+
 FOURPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 5, 5, 4, 4, 3]
 FOURPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 4, 3]
-six_player_game = False  
+FOURPLAYER_LANDTILES = {TileType.FOREST: 4, TileType.FIELD: 4, TileType.MOUNTAIN: 3, TileType.HILL: 3, TileType.PASTURE: 4, TileType.DESERT: 1}
+FOURPLAYER_LANDTILES_VALUES = {2: 1, 12: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 2}
+ 
+
+
+six_player_game = True  
 
 if six_player_game:
     BUILDING_NODES_PER_ROW = SIXPLAYER_BUILDING_NODES_PER_ROW
     LAND_NODES_PER_ROW = SIXPLAYER_LAND_NODES_PER_ROW
+    LANDTILES = SIXPLAYER_LANDTILES
 else:
     BUILDING_NODES_PER_ROW = FOURPLAYER_BUILDING_NODES_PER_ROW
     LAND_NODES_PER_ROW = FOURPLAYER_LAND_NODES_PER_ROW
+    LANDTILES = FOURPLAYER_LANDTILES
 
 # --- Graph Initialization ---
 G = nx.Graph()
@@ -100,10 +110,47 @@ def create_road_edges():
                             G.add_edge(node_name, next_node_name_left, owner=None)
                         
 def create_land_edges():
-    """Creates edges between land nodes and building nodes to represent adjacent land tiles for buildings."""
-    pass # Placeholder for future implementation
-
-
+    """Creates edges between land nodes and their 6 adjacent building nodes, matching the Catan board structure."""
+    for r, land_count in enumerate(LAND_NODES_PER_ROW):
+        for c in range(land_count):
+            row_offsett = 2
+            for i in range(6):
+                # Calculate the coordinates of the adjacent building node
+                # Top
+                if i == 0:
+                    building_row = r * row_offsett
+                    if len(LAND_NODES_PER_ROW) // 2 < r: # If the row is in the second half of the board the column the top building node needs to be offset by 1
+                        building_col = c + 1
+                    else:
+                        building_col = c 
+                # Upper right and left
+                elif i == 1:
+                    building_row = r * row_offsett + 1 
+                    building_col = c
+                elif i == 2:
+                    building_row = r * row_offsett + 1
+                    building_col = c + 1
+                # Bottom right and left
+                elif i == 3:
+                    building_row = r * row_offsett + 2
+                    building_col = c
+                elif i == 4:
+                    building_row = r * row_offsett + 2
+                    building_col = c + 1
+                # Bottom
+                elif i == 5:
+                    building_row = r * row_offsett + 3
+                    if len(LAND_NODES_PER_ROW) // 2 > r: # If the row is in the first half of the board the column the bottom building node needs to be offset by 1
+                        building_col = c + 1
+                    else:
+                        building_col = c
+                # Get the name of the building node
+                building_node_name = get_building_node_name(building_row, building_col)
+                # Get the name of the land node
+                land_node_name = get_land_node_name(r, c)
+                # Add the edge if the building node exists
+                if building_node_name in G.nodes:
+                    G.add_edge(land_node_name, building_node_name)
 # --- Functions to print the graph structure --- 
 
 def print_building_nodes():
@@ -137,8 +184,14 @@ def print_land_nodes():
 if __name__ == "__main__":
     create_building_nodes()
     create_land_nodes()
-    create_road_edges()
+    #create_road_edges()
+    create_land_edges()
     print_building_nodes()
     print_land_nodes()
     #print(f"Total nodes: {len(G.nodes)}")
     #print("Graph structure:", G.edges(data=True))
+    neighbors = list(G.neighbors("L-0-2"))
+    print(f"L-0-2: {neighbors}")
+    neighbors = list(G.neighbors("L-5-2"))
+    print(f"L-5-2: {neighbors}")
+

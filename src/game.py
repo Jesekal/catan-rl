@@ -1,3 +1,4 @@
+import random
 import networkx as nx
 from enum import Enum, auto
 
@@ -32,16 +33,18 @@ FOURPLAYER_LANDTILES_VALUES = {2: 1, 12: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 
  
 
 
-six_player_game = True  
+six_player_game = False  
 
 if six_player_game:
     BUILDING_NODES_PER_ROW = SIXPLAYER_BUILDING_NODES_PER_ROW
     LAND_NODES_PER_ROW = SIXPLAYER_LAND_NODES_PER_ROW
     LANDTILES = SIXPLAYER_LANDTILES
+    LAND_TILES_VALUES = SIXPLAYER_LANDTILES_VALUES
 else:
     BUILDING_NODES_PER_ROW = FOURPLAYER_BUILDING_NODES_PER_ROW
     LAND_NODES_PER_ROW = FOURPLAYER_LAND_NODES_PER_ROW
     LANDTILES = FOURPLAYER_LANDTILES
+    LAND_TILES_VALUES = FOURPLAYER_LANDTILES_VALUES
 
 # --- Graph Initialization ---
 G = nx.Graph()
@@ -74,10 +77,30 @@ def create_building_nodes():
 
 
 def create_land_nodes():
+    all_tile_types = []
+    for tile_type, count in LANDTILES.items():
+        all_tile_types.extend([tile_type] * count)
+    all_values = []
+    for value, count in LAND_TILES_VALUES.items():
+        all_values.extend([value] * count)
+    random.shuffle(all_tile_types)
+    random.shuffle(all_values)
     for r, count in enumerate(LAND_NODES_PER_ROW):
         for c in range(count):
             node_name = f"L-{r}-{c}"
-            G.add_node(node_name, node_type=NodeType.LAND, owner=None, building_type=None)
+            terrain = all_tile_types.pop()
+
+            if terrain == TileType.DESERT:
+                number = 0
+            else:
+                number = all_values.pop()
+
+            G.add_node(
+                node_name,
+                node_type=NodeType.LAND,
+                terrain=terrain,
+                number=number
+            )
 
 
 def create_road_edges():
@@ -151,6 +174,8 @@ def create_land_edges():
                 # Add the edge if the building node exists
                 if building_node_name in G.nodes:
                     G.add_edge(land_node_name, building_node_name)
+
+
 # --- Functions to print the graph structure --- 
 
 def print_building_nodes():
@@ -166,17 +191,28 @@ def print_building_nodes():
                 s_to_print += f"{node_name}{empty_space}"
         print(s_to_print.strip())
 
-def print_land_nodes():
-    """Prints the land nodes structure in a readable format"""
-    empty_space = " " * 2
+def print_land_nodes(include_names=False):
+    """Prints the land nodes structure in a readable format, including value and terrain."""
+    empty_space = " " * 4
     print("Land nodes:")
     for row, count in enumerate(LAND_NODES_PER_ROW):
         s_to_print = ""
-        s_to_print += "____" * (7 - count)
+        if not include_names:
+            s_to_print += "_____" * (7 - count)
+        else:
+            s_to_print += "________" * (7 - count)
         for col in range(count):
             node_name = get_land_node_name(row, col)
             if node_name in G.nodes:
-                s_to_print += f"{node_name}{empty_space}"
+                node_data = G.nodes[node_name]
+                value = node_data.get("number", 0)
+                value_str = f"{value:02d}"
+                terrain = node_data.get("terrain", "")
+                terrain_str = terrain.name[:4] if hasattr(terrain, "name") else str(terrain)[:4]
+                if include_names:
+                    s_to_print += f"{node_name}({value_str}{terrain_str}){empty_space}"
+                else:   
+                    s_to_print += f"{value_str}{terrain_str}{empty_space}"
         print(s_to_print.strip())
 
 
@@ -184,14 +220,13 @@ def print_land_nodes():
 if __name__ == "__main__":
     create_building_nodes()
     create_land_nodes()
-    #create_road_edges()
+    create_road_edges()
     create_land_edges()
     print_building_nodes()
     print_land_nodes()
     #print(f"Total nodes: {len(G.nodes)}")
-    #print("Graph structure:", G.edges(data=True))
+    print("Graph structure:", G.edges(data=True))
     neighbors = list(G.neighbors("L-0-2"))
     print(f"L-0-2: {neighbors}")
-    neighbors = list(G.neighbors("L-5-2"))
+    neighbors = list(G.neighbors("L-3-2"))
     print(f"L-5-2: {neighbors}")
-

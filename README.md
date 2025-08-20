@@ -5,7 +5,7 @@ Python implementation of Settlers of Catan with a reinforcement learning AI agen
 # TODO
 
 [x] Edges between land tiles and building tiles
-[x]    Tile values in generation
+[x] Tile values in generation
     Port nodes
     Functions for building + "owners"
     Game loop

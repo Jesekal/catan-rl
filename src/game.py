@@ -14,37 +14,78 @@ class TileType(Enum):
 class NodeType(Enum):
     LAND = auto()
     BUILDING = auto()
+    PORT = auto()
 
 class BuildingType(Enum):
     VILLAGE = auto()
     CITY = auto()
 
 # --- Constants ---
+FOURPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 5, 5, 4, 4, 3]
+FOURPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 4, 3]
+FOURPLAYER_LANDTILES = {TileType.FOREST: 4, TileType.FIELD: 4, TileType.MOUNTAIN: 3, TileType.HILL: 3, TileType.PASTURE: 4, TileType.DESERT: 1}
+FOURPLAYER_LANDTILES_VALUES = {2: 1, 12: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 2}
+FOURPLAYER_PORT_POSITIONS = [
+    ((0, 0), (1, 0)), 
+    ((0, 1), (1, 2)), 
+    ((3, 0), (4, 0)),  
+    ((7, 0), (8, 0)),  
+    ((10, 0), (11, 0)),  
+    ((10, 2), (11, 1)),  
+    ((9, 3), (8, 4)),  
+    ((5, 5), (6, 5)),  
+    ((3, 4), (2, 3)), 
+]
+FOURPLAYER_PORT_TYPES = [
+    ("3:1", None),
+    ("3:1", None),
+    ("3:1", None),
+    ("3:1", None),
+    ("2:1", TileType.FOREST),
+    ("2:1", TileType.FIELD),
+    ("2:1", TileType.MOUNTAIN),
+    ("2:1", TileType.HILL),
+    ("2:1", TileType.PASTURE),
+]
 
 SIXPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 7, 7, 6, 6, 5, 5, 4, 4, 3]
 SIXPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 6, 5, 4, 3]
 SIXPLAYER_LANDTILES = {TileType.FOREST: 6, TileType.FIELD: 6, TileType.MOUNTAIN: 5, TileType.HILL: 5, TileType.PASTURE: 6, TileType.DESERT: 2}
 SIXPLAYER_LANDTILES_VALUES = {2: 2, 12: 2, 3: 3, 4: 3, 5: 3, 6: 3, 8: 3, 9: 3, 10: 3, 11: 3}
+SIXPLAYER_PORT_POSITIONS = [
+    ((0, 0), (1, 0)), 
+    ((0, 1), (1, 2)), 
+    ((5, 0), (6, 0)),  
+    ((8, 0), (9, 0)),  
+    ((12, 0), (11, 0)),  
+    ((14, 0), (15, 0)),  
+    ((15, 1), (14, 2)),  
+    ((13, 3), (14, 3)),  
+    ((11, 4), (10, 5)),  
+    ((7, 6), (8, 6)),  
+    ((3, 4), (2, 3)),  
+]
+SIXPLAYER_PORT_TYPES = FOURPLAYER_PORT_TYPES + [
+        ("3:1", None), 
+        ("2:1", TileType.FIELD),
+    ]
 
-FOURPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 5, 5, 4, 4, 3]
-FOURPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 4, 3]
-FOURPLAYER_LANDTILES = {TileType.FOREST: 4, TileType.FIELD: 4, TileType.MOUNTAIN: 3, TileType.HILL: 3, TileType.PASTURE: 4, TileType.DESERT: 1}
-FOURPLAYER_LANDTILES_VALUES = {2: 1, 12: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 2}
- 
 
+# --- Game Configuration ---
 
-six_player_game = False  
-
+six_player_game = True  
 if six_player_game:
     BUILDING_NODES_PER_ROW = SIXPLAYER_BUILDING_NODES_PER_ROW
     LAND_NODES_PER_ROW = SIXPLAYER_LAND_NODES_PER_ROW
     LANDTILES = SIXPLAYER_LANDTILES
     LAND_TILES_VALUES = SIXPLAYER_LANDTILES_VALUES
+    PORT_POSITIONS = SIXPLAYER_PORT_POSITIONS
 else:
     BUILDING_NODES_PER_ROW = FOURPLAYER_BUILDING_NODES_PER_ROW
     LAND_NODES_PER_ROW = FOURPLAYER_LAND_NODES_PER_ROW
     LANDTILES = FOURPLAYER_LANDTILES
     LAND_TILES_VALUES = FOURPLAYER_LANDTILES_VALUES
+    PORT_POSITIONS = FOURPLAYER_PORT_POSITIONS
 
 # --- Graph Initialization ---
 G = nx.Graph()

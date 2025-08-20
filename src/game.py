@@ -66,9 +66,9 @@ SIXPLAYER_PORT_POSITIONS = [
     ((3, 4), (2, 3)),  
 ]
 SIXPLAYER_PORT_TYPES = FOURPLAYER_PORT_TYPES + [
-        ("3:1", None), 
-        ("2:1", TileType.FIELD),
-    ]
+    ("3:1", None), 
+    ("2:1", TileType.FIELD),
+]
 
 
 # --- Game Configuration ---
@@ -80,12 +80,14 @@ if six_player_game:
     LANDTILES = SIXPLAYER_LANDTILES
     LAND_TILES_VALUES = SIXPLAYER_LANDTILES_VALUES
     PORT_POSITIONS = SIXPLAYER_PORT_POSITIONS
+    PORT_TYPES = SIXPLAYER_PORT_TYPES
 else:
     BUILDING_NODES_PER_ROW = FOURPLAYER_BUILDING_NODES_PER_ROW
     LAND_NODES_PER_ROW = FOURPLAYER_LAND_NODES_PER_ROW
     LANDTILES = FOURPLAYER_LANDTILES
     LAND_TILES_VALUES = FOURPLAYER_LANDTILES_VALUES
     PORT_POSITIONS = FOURPLAYER_PORT_POSITIONS
+    PORT_TYPES = FOURPLAYER_PORT_TYPES
 
 # --- Graph Initialization ---
 G = nx.Graph()
@@ -109,6 +111,14 @@ def get_land_node_name(row, col):
     if row >= len(LAND_NODES_PER_ROW) or col >= LAND_NODES_PER_ROW[row]:
         raise ValueError(f"Row or column index out of bounds for land nodes. Row: {row}, Column: {col}, Max Row: {len(LAND_NODES_PER_ROW)}, Max Column: {LAND_NODES_PER_ROW[row]}")
     return f"L-{row}-{col}"
+
+def get_port_node_name(building_node_1, building_node_2):
+    """Returns the standardized port node name."""
+    if not isinstance(building_node_1, str) or not isinstance(building_node_2, str):
+        raise ValueError("Building node names must be strings.")
+    if building_node_1[0] != 'B' or building_node_2[0] != 'B':
+        raise ValueError("Building node names must start with 'B'.")
+    return f"P-{building_node_1}-{building_node_2}"
 
 def create_building_nodes():
     for r, count in enumerate(BUILDING_NODES_PER_ROW):
@@ -216,6 +226,22 @@ def create_land_edges():
                 if building_node_name in G.nodes:
                     G.add_edge(land_node_name, building_node_name)
 
+def create_ports():
+    """Creates port nodes and connects them to the appropriate building nodes."""
+    ports = PORT_TYPES.copy()
+    random.shuffle(ports)
+    for (position, (port_ratio, tile_type)) in zip(PORT_POSITIONS, ports):
+        building_node_name = get_building_node_name(*position[0])
+        if building_node_name not in G.nodes:
+            continue
+        building_node_name_2 = get_building_node_name(*position[1])
+        if building_node_name_2 not in G.nodes:
+            continue
+        port_node_name = get_port_node_name(building_node_name, building_node_name_2)
+        G.add_node(port_node_name, node_type=NodeType.PORT, ratio=port_ratio, tile_type=tile_type)
+        G.add_edge(building_node_name, port_node_name, owner=None)
+        G.add_edge(building_node_name_2, port_node_name, owner=None)
+
 
 # --- Functions to print the graph structure --- 
 
@@ -263,11 +289,13 @@ if __name__ == "__main__":
     create_land_nodes()
     create_road_edges()
     create_land_edges()
+    create_ports()
     print_building_nodes()
     print_land_nodes()
     #print(f"Total nodes: {len(G.nodes)}")
     print("Graph structure:", G.edges(data=True))
-    neighbors = list(G.neighbors("L-0-2"))
-    print(f"L-0-2: {neighbors}")
-    neighbors = list(G.neighbors("L-3-2"))
-    print(f"L-5-2: {neighbors}")
+    print("Port nodes:")
+    for node in G.nodes:
+        if G.nodes[node].get("node_type") == NodeType.PORT:
+            print(f"{node} - Ratio: {G.nodes[node].get('ratio')}, Tile Type: {G.nodes[node].get('tile_type')}")
+            print(f"Connected to: {list(G.neighbors(node))}")

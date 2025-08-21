@@ -118,6 +118,8 @@ players = {
 # --- Graph Initialization ---
 G = nx.Graph()
 
+# --- Functions for getting standardized node names ---
+
 def get_building_node_name(row, col):
     """Returns the standardized building node name."""
     if row < 0 or col < 0:
@@ -129,6 +131,20 @@ def get_building_node_name(row, col):
     if row < 10:
         row = f"0{row}"
     return f"B-{row}-{col}"
+
+def parse_building_node_name(name):
+    """
+    Given a standardized building node name (e.g., 'B-03-07'), returns (row, col) as integers.
+    """
+    if not isinstance(name, str) or not name.startswith("B-"):
+        raise ValueError(f"Invalid building node name: {name}")
+    try:
+        _, row_str, col_str = name.split("-")
+        row = int(row_str)
+        col = int(col_str)
+        return (row, col)
+    except Exception as e:
+        raise ValueError(f"Could not parse building node name '{name}': {e}")
 
 def get_land_node_name(row, col):
     """Returns the standardized land node name."""
@@ -145,6 +161,8 @@ def get_port_node_name(building_node_1, building_node_2):
     if building_node_1[0] != 'B' or building_node_2[0] != 'B':
         raise ValueError("Building node names must start with 'B'.")
     return f"P-{building_node_1}-{building_node_2}"
+
+# --- Functions for initializing the game board ---
 
 def create_building_nodes():
     for r, count in enumerate(BUILDING_NODES_PER_ROW):
@@ -268,43 +286,6 @@ def create_ports():
         G.add_edge(building_node_name, port_node_name, owner=None)
         G.add_edge(building_node_name_2, port_node_name, owner=None)
 
-
-# --- Player building functions ---
-def add_building(player_id, building_node_name):
-    if building_node_name not in G.nodes:
-        raise ValueError(f"Building node {building_node_name} does not exist.")
-    if G.nodes[building_node_name]["node_type"] != NodeType.BUILDING:
-        raise ValueError(f"Node {building_node_name} is not a building node.")
-    if G.nodes[building_node_name]["owner"] is not None and G.nodes[building_node_name]["owner"] != player_id:
-        raise ValueError(f"Building node {building_node_name} is already owned by player {G.nodes[building_node_name]['owner']}.")
-    if G.nodes[building_node_name]["building_type"] is not None and G.nodes[building_node_name]["building_type"] != BuildingType.VILLAGE:
-        raise ValueError(f"Building node {building_node_name} already has a building of type {G.nodes[building_node_name]['building_type']}.")
-    G.nodes[building_node_name]["owner"] = player_id
-    if G.nodes[building_node_name]["building_type"] is None:
-        G.nodes[building_node_name]["building_type"] = BuildingType.VILLAGE
-        players[player_id]["villages"] += 1
-    else:
-        G.nodes[building_node_name]["building_type"] = BuildingType.CITY
-        players[player_id]["cities"] += 1
-        players[player_id]["villages"] -= 1
-    players[player_id]["victory_points"] += 1
-
-
-def add_road(player_id, building_node_name1, building_node_name2):
-    if building_node_name1 not in G.nodes or building_node_name2 not in G.nodes:
-        raise ValueError("One or both building nodes do not exist.")
-    if G.nodes[building_node_name1]["node_type"] != NodeType.BUILDING or G.nodes[building_node_name2]["node_type"] != NodeType.BUILDING:
-        raise ValueError("One or both nodes are not building nodes.")
-    if G.nodes[building_node_name1]["owner"] != player_id or G.nodes[building_node_name2]["owner"] != player_id:
-        raise ValueError("You can only build roads on your own buildings.")
-    if G.has_edge(building_node_name1, building_node_name2):
-        raise ValueError("A road already exists between these two buildings.")
-    
-    # Add the road edge
-    G.add_edge(building_node_name1, building_node_name2, owner=player_id)
-    players[player_id]["roads"] += 1
-
-
 def shuffle_board():
     """Reshuffles all land tile values, tile types, and ports."""
     # Shuffle land tile types
@@ -344,8 +325,68 @@ def shuffle_board():
             G.nodes[port_node_name]["ratio"] = port_ratio
             G.nodes[port_node_name]["tile_type"] = tile_type
 
+# --- Player building functions ---
+
+def add_building(player_id, building_node_name):
+    if building_node_name not in G.nodes:
+        raise ValueError(f"Building node {building_node_name} does not exist.")
+    if G.nodes[building_node_name]["node_type"] != NodeType.BUILDING:
+        raise ValueError(f"Node {building_node_name} is not a building node.")
+    if G.nodes[building_node_name]["owner"] is not None and G.nodes[building_node_name]["owner"] != player_id:
+        raise ValueError(f"Building node {building_node_name} is already owned by player {G.nodes[building_node_name]['owner']}.")
+    if G.nodes[building_node_name]["building_type"] is not None and G.nodes[building_node_name]["building_type"] != BuildingType.VILLAGE:
+        raise ValueError(f"Building node {building_node_name} already has a building of type {G.nodes[building_node_name]['building_type']}.")
+    G.nodes[building_node_name]["owner"] = player_id
+    if G.nodes[building_node_name]["building_type"] is None:
+        G.nodes[building_node_name]["building_type"] = BuildingType.VILLAGE
+        players[player_id]["villages"] += 1
+    else:
+        G.nodes[building_node_name]["building_type"] = BuildingType.CITY
+        players[player_id]["cities"] += 1
+        players[player_id]["villages"] -= 1
+    players[player_id]["victory_points"] += 1
+
+
+def add_road(player_id, building_node_name1, building_node_name2):
+    if building_node_name1 not in G.nodes or building_node_name2 not in G.nodes:
+        raise ValueError("One or both building nodes do not exist.")
+    if G.nodes[building_node_name1]["node_type"] != NodeType.BUILDING or G.nodes[building_node_name2]["node_type"] != NodeType.BUILDING:
+        raise ValueError("One or both nodes are not building nodes.")
+    if G.nodes[building_node_name1]["owner"] != player_id or G.nodes[building_node_name2]["owner"] != player_id:
+        raise ValueError("You can only build roads on your own buildings.")
+    if G.has_edge(building_node_name1, building_node_name2):
+        raise ValueError("A road already exists between these two buildings.")
+    
+    # Add the road edge
+    G.add_edge(building_node_name1, building_node_name2, owner=player_id)
+    players[player_id]["roads"] += 1
 
 # --- Functions to print the graph structure --- 
+
+def print_roads():
+    empty_space = " " * 2
+    print("Building nodes:")
+    for row, count in enumerate(BUILDING_NODES_PER_ROW):
+        s_to_print = ""
+        s_to_print += "________" * (7 - count)
+        for col in range(count):
+            node_name = get_building_node_name(row, col)
+            if node_name in G.nodes: 
+                current_node_cords = parse_building_node_name(node_name)
+                s_to_print += f"{current_node_cords[0]}-{current_node_cords[1]}:"
+                for neighbor in G.neighbors(node_name):
+                    if G.nodes[neighbor].get("node_type") == NodeType.BUILDING:
+                        edge = G.get_edge_data(node_name, neighbor)
+                        owner = edge.get("owner", "None")
+                        if owner is None:
+                            owner = 0
+                        else:
+                            owner = int(owner)
+                        neigbor_cords = parse_building_node_name(neighbor)
+                        s_to_print += f"{neigbor_cords[0]}-{neigbor_cords[1]}({owner})"
+                s_to_print += empty_space
+        print(s_to_print.strip())
+
 
 def print_building_nodes(show_buildings=False):
     """Prints the building nodes structure in a readable format"""
@@ -439,11 +480,17 @@ def test_add_building():
         print_building_nodes(show_buildings=True)
     
 
+def test_add_road():
+    """Tests adding a road between two building nodes."""
+    pass
+
 if __name__ == "__main__":
     #test_shuffle_speed()
     #test_setup_speed()
-    test_add_building()
-    
+    #test_add_building()
+    setup_board()
+    print("Initial board setup complete.")
+    print_roads()
 
     # Optionally print the board for verification
     # print_building_nodes()

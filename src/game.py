@@ -207,7 +207,7 @@ def create_road_edges():
                 for c in range(count):
                     node_name = get_building_node_name(r, c)
                     next_node_name = get_building_node_name(r + 1, c)
-                    G.add_edge(node_name, next_node_name, owner=None)
+                    G.add_edge(node_name, next_node_name, owner=0)
             else:
                 # First half of even-value-rows will always connenct to two nodes on the next row
                 if r < len(BUILDING_NODES_PER_ROW) // 2:
@@ -215,17 +215,17 @@ def create_road_edges():
                         node_name = get_building_node_name(r, c)
                         next_node_name_left = get_building_node_name(r + 1, c)
                         next_node_name_right = get_building_node_name(r + 1, c + 1)
-                        G.add_edge(node_name, next_node_name_left, owner=None)
-                        G.add_edge(node_name, next_node_name_right, owner=None)
+                        G.add_edge(node_name, next_node_name_left, owner=0)
+                        G.add_edge(node_name, next_node_name_right, owner=0)
                 else:
                     for c in range(count):
                         node_name = get_building_node_name(r, c)
                         if c < count - 1:
                             next_node_name_right = get_building_node_name(r + 1, c)
-                            G.add_edge(node_name, next_node_name_right, owner=None)
+                            G.add_edge(node_name, next_node_name_right, owner=0)
                         if c > 0:
                             next_node_name_left = get_building_node_name(r + 1, c - 1)
-                            G.add_edge(node_name, next_node_name_left, owner=None)
+                            G.add_edge(node_name, next_node_name_left, owner=0)
                         
 def create_land_edges():
     """Creates edges between land nodes and their 6 adjacent building nodes, matching the Catan board structure."""
@@ -352,20 +352,18 @@ def add_road(player_id, building_node_name1, building_node_name2):
         raise ValueError("One or both building nodes do not exist.")
     if G.nodes[building_node_name1]["node_type"] != NodeType.BUILDING or G.nodes[building_node_name2]["node_type"] != NodeType.BUILDING:
         raise ValueError("One or both nodes are not building nodes.")
-    if G.nodes[building_node_name1]["owner"] != player_id or G.nodes[building_node_name2]["owner"] != player_id:
-        raise ValueError("You can only build roads on your own buildings.")
-    if G.has_edge(building_node_name1, building_node_name2):
-        raise ValueError("A road already exists between these two buildings.")
-    
-    # Add the road edge
-    G.add_edge(building_node_name1, building_node_name2, owner=player_id)
+    if G.edges.get((building_node_name1, building_node_name2)) is None:
+        raise ValueError(f"{building_node_name1} and {building_node_name2} are not connected")
+    if G.edges[(building_node_name1, building_node_name2)]["owner"] != 0:
+        raise ValueError(f"Road between {building_node_name1} and {building_node_name2} is already owned by player {G.edges[(building_node_name1, building_node_name2)]['owner']}.")
+    G.edges[(building_node_name1, building_node_name2)]["owner"] = player_id
     players[player_id]["roads"] += 1
 
 # --- Functions to print the graph structure --- 
 
 def print_roads():
     empty_space = " " * 2
-    print("Building nodes:")
+    print("Road connections:")
     for row, count in enumerate(BUILDING_NODES_PER_ROW):
         s_to_print = ""
         s_to_print += "________" * (7 - count)
@@ -412,6 +410,7 @@ def print_building_nodes(show_buildings=False):
                 else:
                     s_to_print += f"{node_name}{empty_space}"
         print(s_to_print.strip())
+
 
 def print_land_nodes(include_names=False):
     """Prints the land nodes structure in a readable format, including value and terrain."""
@@ -482,15 +481,26 @@ def test_add_building():
 
 def test_add_road():
     """Tests adding a road between two building nodes."""
-    pass
+    setup_board()
+    print("Initial board setup complete.")
+    print_roads()
+    
+    # Add a road between the first two building nodes
+    add_road(1, get_building_node_name(0, 0), get_building_node_name(1, 0))
+    print("After adding a road:")
+    print_roads()
+    
+    # Try to add a road that already exists
+    try:
+        add_road(1, get_building_node_name(0, 0), get_building_node_name(1, 0))
+    except ValueError as e:
+        print(f"Expected error: {e}")
 
 if __name__ == "__main__":
     #test_shuffle_speed()
     #test_setup_speed()
     #test_add_building()
-    setup_board()
-    print("Initial board setup complete.")
-    print_roads()
+    test_add_road()
 
     # Optionally print the board for verification
     # print_building_nodes()

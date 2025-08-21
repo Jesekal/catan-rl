@@ -438,14 +438,50 @@ def print_land_nodes(include_names=False):
 
 
 # Testing
-def setup_board():
-    """Sets up the board by creating all nodes and edges."""
+def setup_board(number_of_players=NUMBER_OF_PLAYERS):
+    """Sets up the board by creating all nodes and edges for the given number of players."""
+    global BUILDING_NODES_PER_ROW, LAND_NODES_PER_ROW, LANDTILES, LAND_TILES_VALUES, PORT_POSITIONS, PORT_TYPES, NUMBER_OF_PLAYERS, players
+
+    # Select configuration based on number of players
+    if number_of_players == 6:
+        BUILDING_NODES_PER_ROW = SIXPLAYER_BUILDING_NODES_PER_ROW
+        LAND_NODES_PER_ROW = SIXPLAYER_LAND_NODES_PER_ROW
+        LANDTILES = SIXPLAYER_LANDTILES
+        LAND_TILES_VALUES = SIXPLAYER_LANDTILES_VALUES
+        PORT_POSITIONS = SIXPLAYER_PORT_POSITIONS
+        PORT_TYPES = SIXPLAYER_PORT_TYPES
+        NUMBER_OF_PLAYERS = 6
+    else:
+        BUILDING_NODES_PER_ROW = FOURPLAYER_BUILDING_NODES_PER_ROW
+        LAND_NODES_PER_ROW = FOURPLAYER_LAND_NODES_PER_ROW
+        LANDTILES = FOURPLAYER_LANDTILES
+        LAND_TILES_VALUES = FOURPLAYER_LANDTILES_VALUES
+        PORT_POSITIONS = FOURPLAYER_PORT_POSITIONS
+        PORT_TYPES = FOURPLAYER_PORT_TYPES
+        NUMBER_OF_PLAYERS = 4
+
+    # Reset players dict
+    players = {
+        pid: {
+            "resources": {r: 0 for r in Resource},
+            "roads": 0,
+            "villages": 0,
+            "cities": 0,
+            "victory_points": 0,
+            "dev_cards": [],
+            "has_longest_road": False,
+            "has_largest_army": False,
+        }
+        for pid in range(1, NUMBER_OF_PLAYERS + 1)
+    }
+
     G.clear()
     create_building_nodes()
     create_land_nodes()
     create_road_edges()
     create_land_edges()
     create_ports()
+    return G
 
 def test_shuffle_speed():
     setup_board()  # Ensure board is set up before shuffling

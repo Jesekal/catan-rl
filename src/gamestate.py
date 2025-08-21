@@ -7,22 +7,6 @@ class GameState:
         self.phase = "setup"
         self.round = 0
 
-        players = {
-        pid: {
-            "resources": {r: 0 for r in ["wood", "brick", "sheep", "wheat", "ore"]},  
-            "development_cards": [],
-            "roads": 0,
-            "villages": 0,
-            "cities": 0,
-            "victory_points": 0,
-            "dev_cards": [],
-            "has_longest_road": False,
-            "has_largest_army": False,
-        }
-        for pid in range(1, number_of_players + 1)
-}
-
-        
 
     def legal_moves(self, player_id):
         """Returns a list of legal moves for the given player."""

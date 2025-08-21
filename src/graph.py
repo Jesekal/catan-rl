@@ -2,6 +2,7 @@ import random
 import networkx as nx
 from enum import Enum, auto
 import time
+import copy
 
 # --- Enums ---
 class TileType(Enum):
@@ -327,37 +328,46 @@ def shuffle_board():
 
 # --- Player building functions ---
 
-def add_building(player_id, building_node_name):
-    if building_node_name not in G.nodes:
+def add_building(graph, players_dict, player_id, building_node_name):
+    """Returns a new graph with the building added for the player."""
+    G_new = copy.deepcopy(graph)
+    players_new = copy.deepcopy(players_dict)
+    if building_node_name not in G_new.nodes:
         raise ValueError(f"Building node {building_node_name} does not exist.")
-    if G.nodes[building_node_name]["node_type"] != NodeType.BUILDING:
+    if G_new.nodes[building_node_name]["node_type"] != NodeType.BUILDING:
         raise ValueError(f"Node {building_node_name} is not a building node.")
-    if G.nodes[building_node_name]["owner"] is not None and G.nodes[building_node_name]["owner"] != player_id:
-        raise ValueError(f"Building node {building_node_name} is already owned by player {G.nodes[building_node_name]['owner']}.")
-    if G.nodes[building_node_name]["building_type"] is not None and G.nodes[building_node_name]["building_type"] != BuildingType.VILLAGE:
-        raise ValueError(f"Building node {building_node_name} already has a building of type {G.nodes[building_node_name]['building_type']}.")
-    G.nodes[building_node_name]["owner"] = player_id
-    if G.nodes[building_node_name]["building_type"] is None:
-        G.nodes[building_node_name]["building_type"] = BuildingType.VILLAGE
-        players[player_id]["villages"] += 1
+    if G_new.nodes[building_node_name]["owner"] is not None and G_new.nodes[building_node_name]["owner"] != player_id:
+        raise ValueError(f"Building node {building_node_name} is already owned by player {G_new.nodes[building_node_name]['owner']}.")
+    if G_new.nodes[building_node_name]["building_type"] is not None and G_new.nodes[building_node_name]["building_type"] != BuildingType.VILLAGE:
+        raise ValueError(f"Building node {building_node_name} already has a building of type {G_new.nodes[building_node_name]['building_type']}.")
+    G_new.nodes[building_node_name]["owner"] = player_id
+    if G_new.nodes[building_node_name]["building_type"] is None:
+        G_new.nodes[building_node_name]["building_type"] = BuildingType.VILLAGE
+        players_new[player_id]["villages"] += 1
     else:
-        G.nodes[building_node_name]["building_type"] = BuildingType.CITY
-        players[player_id]["cities"] += 1
-        players[player_id]["villages"] -= 1
-    players[player_id]["victory_points"] += 1
+        G_new.nodes[building_node_name]["building_type"] = BuildingType.CITY
+        players_new[player_id]["cities"] += 1
+        players_new[player_id]["villages"] -= 1
+    players_new[player_id]["victory_points"] += 1
+    return G_new, players_new
 
-
-def add_road(player_id, building_node_name1, building_node_name2):
-    if building_node_name1 not in G.nodes or building_node_name2 not in G.nodes:
+def add_road(graph, players_dict, player_id, building_node_name1, building_node_name2):
+    """Returns a new graph with the road added for the player."""
+    G_new = copy.deepcopy(graph)
+    players_new = copy.deepcopy(players_dict)
+    if building_node_name1 not in G_new.nodes or building_node_name2 not in G_new.nodes:
         raise ValueError("One or both building nodes do not exist.")
-    if G.nodes[building_node_name1]["node_type"] != NodeType.BUILDING or G.nodes[building_node_name2]["node_type"] != NodeType.BUILDING:
+    if G_new.nodes[building_node_name1]["node_type"] != NodeType.BUILDING or G_new.nodes[building_node_name2]["node_type"] != NodeType.BUILDING:
         raise ValueError("One or both nodes are not building nodes.")
-    if G.edges.get((building_node_name1, building_node_name2)) is None:
+    if G_new.edges.get((building_node_name1, building_node_name2)) is None and G_new.edges.get((building_node_name2, building_node_name1)) is None:
         raise ValueError(f"{building_node_name1} and {building_node_name2} are not connected")
-    if G.edges[(building_node_name1, building_node_name2)]["owner"] != 0:
-        raise ValueError(f"Road between {building_node_name1} and {building_node_name2} is already owned by player {G.edges[(building_node_name1, building_node_name2)]['owner']}.")
-    G.edges[(building_node_name1, building_node_name2)]["owner"] = player_id
-    players[player_id]["roads"] += 1
+    # NetworkX stores edges in both directions for undirected graphs
+    edge_key = (building_node_name1, building_node_name2) if G_new.edges.get((building_node_name1, building_node_name2)) is not None else (building_node_name2, building_node_name1)
+    if G_new.edges[edge_key]["owner"] != 0:
+        raise ValueError(f"Road between {building_node_name1} and {building_node_name2} is already owned by player {G_new.edges[edge_key]['owner']}.")
+    G_new.edges[edge_key]["owner"] = player_id
+    players_new[player_id]["roads"] += 1
+    return G_new, players_new
 
 # --- Functions to print the graph structure --- 
 
@@ -503,32 +513,34 @@ def test_setup_speed():
         print(f"Average setup_board time over 10 runs: {sum(setup_times)/len(setup_times):.6f} seconds")
 
 def test_add_building():
-    """Tests adding a building to the board."""
+    """Tests adding a building to the board using the updated add_building function."""
     setup_board()
     print("Initial board setup complete.")
     print_building_nodes(show_buildings=True)
-    
+
+    global G, players
     # Add a building to the first node
     for _ in range(2):
-        add_building(1, get_building_node_name(0, 0))
+        G, players = add_building(G, players, 1, get_building_node_name(0, 0))
         print("After adding a building:")
         print_building_nodes(show_buildings=True)
-    
+
 
 def test_add_road():
-    """Tests adding a road between two building nodes."""
+    """Tests adding a road between two building nodes using the updated add_road function."""
     setup_board()
     print("Initial board setup complete.")
     print_roads()
-    
+
+    global G, players
     # Add a road between the first two building nodes
-    add_road(1, get_building_node_name(0, 0), get_building_node_name(1, 0))
+    G, players = add_road(G, players, 1, get_building_node_name(0, 0), get_building_node_name(1, 0))
     print("After adding a road:")
     print_roads()
-    
+
     # Try to add a road that already exists
     try:
-        add_road(1, get_building_node_name(0, 0), get_building_node_name(1, 0))
+        G, players = add_road(G, players, 1, get_building_node_name(0, 0), get_building_node_name(1, 0))
     except ValueError as e:
         print(f"Expected error: {e}")
 

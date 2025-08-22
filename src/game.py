@@ -44,6 +44,15 @@ class GameState:
         self.players[player_id]["resources"][resource_type] += amount
         self.update_board()
 
+    def infinite_resources(self, player_id):
+        """Gives infinite resources to a player for testing purposes."""
+        if player_id not in self.players:
+            raise ValueError(f"Player {player_id} does not exist.")
+        
+        for resource in Resource:
+            self.players[player_id]["resources"][resource] = float('inf')
+        self.update_board()
+
     def update_board(self):
         self.board.players = self.players
         self.board.robber_position = self.robber_position
@@ -56,16 +65,17 @@ class GameState:
 if __name__ == "__main__":
     # Example usage
     game_state = GameState(number_of_players=4)
-    game_state.board.print_graph()
+
     game_state.board.build_settlement(1, get_building_node_name(0, 0))
     game_state.board.build_road(2, get_building_node_name(5, 2), get_building_node_name(4, 1))
-    game_state.give_resource(2, Resource.WOOD, 2)
-    game_state.give_resource(2, Resource.BRICK, 2)
+    game_state.infinite_resources(2)
+    
     game_state.give_resource(1, Resource.WOOD, 2)
     game_state.give_resource(1, Resource.BRICK, 2)
     game_state.give_resource(1, Resource.ORE, 3)
     game_state.give_resource(1, Resource.SHEEP, 2)
     game_state.give_resource(1, Resource.WHEAT, 2)
-    print(f"Legal moves for player one: {game_state.legal_moves(1)}")
+    game_state.board.print_graph()
+    #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     print(f"Legal moves for player two: {game_state.legal_moves(2)}")
-    print("Game state initialized with board setup.")
+    print(game_state.board.afforded_turn_moves(2))

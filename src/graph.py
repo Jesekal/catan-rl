@@ -170,7 +170,7 @@ def create_building_nodes():
     for r, count in enumerate(BUILDING_NODES_PER_ROW):
         for c in range(count):
             node_name = get_building_node_name(r, c)
-            G.add_node(node_name, node_type=NodeType.BUILDING, owner=None, building_type=None)
+            G.add_node(node_name, node_type=NodeType.BUILDING, owner=0, building_type=None)
 
 
 def create_land_nodes():
@@ -337,7 +337,7 @@ def add_building(graph, players_dict, player_id, building_node_name):
         raise ValueError(f"Building node {building_node_name} does not exist.")
     if G_new.nodes[building_node_name]["node_type"] != NodeType.BUILDING:
         raise ValueError(f"Node {building_node_name} is not a building node.")
-    if G_new.nodes[building_node_name]["owner"] is not None and G_new.nodes[building_node_name]["owner"] != player_id:
+    if G_new.nodes[building_node_name]["owner"] is not None and G_new.nodes[building_node_name]["owner"] != player_id and G_new.nodes[building_node_name]["owner"] != 0:
         raise ValueError(f"Building node {building_node_name} is already owned by player {G_new.nodes[building_node_name]['owner']}.")
     if G_new.nodes[building_node_name]["building_type"] is not None and G_new.nodes[building_node_name]["building_type"] != BuildingType.VILLAGE:
         raise ValueError(f"Building node {building_node_name} already has a building of type {G_new.nodes[building_node_name]['building_type']}.")

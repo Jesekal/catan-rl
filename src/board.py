@@ -1,4 +1,4 @@
-from graph import setup_board, TileType, add_building, add_road, get_building_node_name
+from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure
 
 class Board:
     def __init__(self, number_of_players=4):
@@ -52,12 +52,19 @@ class Board:
         except Exception as e:
             print(f"Failed to build settlement: {e}")
             raise
-        
+
+    def print_graph(self):
+        """Prints the current state of the graph."""
+        print_graph_structure(self.graph)
+    
+
+
         
 if __name__ == "__main__":
     # Example usage
-    board = Board(number_of_players=4)
+    board = Board(number_of_players=6)
     board.setup_graph()
     board.build_road(1, get_building_node_name(0,0), get_building_node_name(1,0))
     board.build_settlement(1, get_building_node_name(0,0))
     print(f"Robber is positioned at: {board.robber_position}")
+    board.print_graph()

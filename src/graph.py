@@ -29,6 +29,7 @@ class Resource(Enum):
     WHEAT = auto()
     SHEEP = auto()
 
+# --- Constants ---
 
 FOURPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 5, 5, 4, 4, 3]
 FOURPLAYER_LAND_NODES_PER_ROW = [3, 4, 5, 4, 3]
@@ -78,8 +79,6 @@ SIXPLAYER_PORT_TYPES = FOURPLAYER_PORT_TYPES + [
     ("3:1", None), 
     ("2:1", TileType.FIELD),
 ]
-# --- Constants ---
-
 
 
 # --- Game Configuration ---
@@ -371,20 +370,34 @@ def add_road(graph, players_dict, player_id, building_node_name1, building_node_
 
 # --- Functions to print the graph structure --- 
 
-def print_roads():
+def print_graph_structure(graph):
+    print("Entire graph")
+    print_roads(graph)
+    print_building_nodes(graph, show_buildings=True)
+    print_land_nodes(graph, include_names=True)
+
+def print_roads(graph):
+    """Prints the road connections for the given graph."""
+    # Infer BUILDING_NODES_PER_ROW from the graph
+    building_nodes = [n for n, d in graph.nodes(data=True) if d.get("node_type") == NodeType.BUILDING]
+    coords = [parse_building_node_name(n) for n in building_nodes]
+    max_row = max(r for r, c in coords)
+    row_counts = []
+    for r in range(max_row + 1):
+        row_counts.append(sum(1 for row, _ in coords if row == r))
     empty_space = " " * 2
     print("Road connections:")
-    for row, count in enumerate(BUILDING_NODES_PER_ROW):
+    for row, count in enumerate(row_counts):
         s_to_print = ""
-        s_to_print += "________" * (7 - count)
+        s_to_print += "________" * (max(row_counts) - count)
         for col in range(count):
             node_name = get_building_node_name(row, col)
-            if node_name in G.nodes: 
+            if node_name in graph.nodes: 
                 current_node_cords = parse_building_node_name(node_name)
                 s_to_print += f"{current_node_cords[0]}-{current_node_cords[1]}:"
-                for neighbor in G.neighbors(node_name):
-                    if G.nodes[neighbor].get("node_type") == NodeType.BUILDING:
-                        edge = G.get_edge_data(node_name, neighbor)
+                for neighbor in graph.neighbors(node_name):
+                    if graph.nodes[neighbor].get("node_type") == NodeType.BUILDING:
+                        edge = graph.get_edge_data(node_name, neighbor)
                         owner = edge.get("owner", "None")
                         if owner is None:
                             owner = 0
@@ -396,21 +409,27 @@ def print_roads():
         print(s_to_print.strip())
 
 
-def print_building_nodes(show_buildings=False):
-    """Prints the building nodes structure in a readable format"""
+def print_building_nodes(graph, show_buildings=False):
+    """Prints the building nodes structure in a readable format for the given graph."""
+    building_nodes = [n for n, d in graph.nodes(data=True) if d.get("node_type") == NodeType.BUILDING]
+    coords = [parse_building_node_name(n) for n in building_nodes]
+    max_row = max(r for r, c in coords)
+    row_counts = []
+    for r in range(max_row + 1):
+        row_counts.append(sum(1 for row, _ in coords if row == r))
     empty_space = " " * 2
     print("Building nodes:")
-    for row, count in enumerate(BUILDING_NODES_PER_ROW):
+    for row, count in enumerate(row_counts):
         s_to_print = ""
         if not show_buildings:
-            s_to_print += "____" * (7 - count)
+            s_to_print += "____" * (max(row_counts) - count)
         else:
-            s_to_print += "________" * (7 - count)
+            s_to_print += "________" * (max(row_counts) - count)
         for col in range(count):
             node_name = get_building_node_name(row, col)
-            if node_name in G.nodes:
+            if node_name in graph.nodes:
                 if show_buildings:
-                    node_data = G.nodes[node_name]
+                    node_data = graph.nodes[node_name]
                     owner = node_data.get("owner", "None")
                     building_type = node_data.get("building_type", "None")
                     building_type_str = building_type.name[:4] if hasattr(building_type, "name") else str(building_type)[:4]
@@ -422,20 +441,26 @@ def print_building_nodes(show_buildings=False):
         print(s_to_print.strip())
 
 
-def print_land_nodes(include_names=False):
-    """Prints the land nodes structure in a readable format, including value and terrain."""
+def print_land_nodes(graph, include_names=False):
+    """Prints the land nodes structure in a readable format for the given graph, including value and terrain."""
+    land_nodes = [n for n, d in graph.nodes(data=True) if d.get("node_type") == NodeType.LAND]
+    coords = [tuple(map(int, n.split('-')[1:])) for n in land_nodes]
+    max_row = max(r for r, c in coords)
+    row_counts = []
+    for r in range(max_row + 1):
+        row_counts.append(sum(1 for row, _ in coords if row == r))
     empty_space = " " * 4
     print("Land nodes:")
-    for row, count in enumerate(LAND_NODES_PER_ROW):
+    for row, count in enumerate(row_counts):
         s_to_print = ""
         if not include_names:
-            s_to_print += "_____" * (7 - count)
+            s_to_print += "_____" * (max(row_counts) - count)
         else:
-            s_to_print += "________" * (7 - count)
+            s_to_print += "________" * (max(row_counts) - count)
         for col in range(count):
             node_name = get_land_node_name(row, col)
-            if node_name in G.nodes:
-                node_data = G.nodes[node_name]
+            if node_name in graph.nodes:
+                node_data = graph.nodes[node_name]
                 value = node_data.get("number", 0)
                 value_str = f"{value:02d}"
                 terrain = node_data.get("terrain", "")
@@ -445,7 +470,6 @@ def print_land_nodes(include_names=False):
                 else:   
                     s_to_print += f"{value_str}{terrain_str}{empty_space}"
         print(s_to_print.strip())
-
 
 # Testing
 def setup_board(number_of_players=NUMBER_OF_PLAYERS):

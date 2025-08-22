@@ -1,4 +1,4 @@
-from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure
+from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure, NodeType
 
 class Board:
     def __init__(self, number_of_players=4):
@@ -56,6 +56,21 @@ class Board:
     def print_graph(self):
         """Prints the current state of the graph."""
         print_graph_structure(self.graph)
+
+    def move_robber(self, new_position):
+        """Moves the robber to a new position."""
+        if new_position not in self.graph.nodes:
+            raise ValueError(f"Position not in graph: {new_position}")
+        if new_position == self.robber_position:
+            raise ValueError("Robber is already at this position.")
+        if new_position == self.last_robber_position:
+            raise ValueError("Cannot move robber back to the last position.")
+        if new_position.get('node_type') != NodeType.LAND:
+            raise ValueError("Robber can only be moved to a land node.")
+        
+        self.last_robber_position = self.robber_position
+        self.robber_position = new_position
+        print(f"Robber moved to {new_position}")
     
 
 

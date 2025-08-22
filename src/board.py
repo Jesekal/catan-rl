@@ -102,6 +102,18 @@ class Board:
                         legal_moves.append((action, node))
             elif action == BuildingType.DEVELOPMENT_CARD:
                 legal_moves.append((action, None))
+            elif action == BuildingType.ROAD:
+                for edge in self.graph.edges:
+                    if self.graph.edges[edge].get('owner') == player_id:
+                        connected_node1 = edge[0]
+                        connected_node2 = edge[1]
+                        connected_nodes = [connected_node1, connected_node2]
+                        for connected_node in connected_nodes:
+                            for neighbor in self.graph.neighbors(connected_node):
+                                if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING:
+                                    road_edge = self.graph.get_edge_data(connected_node, neighbor)
+                                    if road_edge.get('owner') == 0:
+                                        legal_moves.append((action, connected_node, neighbor))
         
         return legal_moves
 

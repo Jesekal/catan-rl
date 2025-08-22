@@ -1,26 +1,21 @@
-from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure, NodeType
+from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure, NodeType, Resource, BuildingType
+
 
 class Board:
-    def __init__(self, number_of_players=4):
-        self.number_of_players = number_of_players
+    def __init__(self, players, cards=None):
         self.graph = None # This will be initialized in setup_graph
         self.robber_position = None
         self.last_robber_position = None
-        self.players = {
-            pid: {
-                "resources": {r: 0 for r in ["wood", "brick", "sheep", "wheat", "ore"]},
-                "development_cards": [],
-                "roads": 0,
-                "villages": 0,
-                "cities": 0,
-                "victory_points": 0,
-                "dev_cards": [],
-                "has_longest_road": False,
-                "has_largest_army": False,
-            }
-            for pid in range(1, number_of_players + 1)
+        self.players = players  # A dictionary mapping player IDs to their data
+        self.number_of_players = len(players)
+        self.buying_actions = { 
+            BuildingType.ROAD: {Resource.WOOD: 1, Resource.BRICK: 1},
+            BuildingType.VILLAGE: {Resource.WOOD: 1, Resource.BRICK: 1, Resource.SHEEP: 1, Resource.WHEAT: 1},
+            BuildingType.CITY: {Resource.ORE: 3, Resource.WHEAT: 2},
+            BuildingType.DEVELOPMENT_CARD: {Resource.ORE: 1, Resource.WHEAT: 1, Resource.SHEEP: 1},
         }
-    
+
+
     def setup_graph(self):
         """Initializes the graph representation of the board."""
         self.graph = setup_board(self.number_of_players)
@@ -71,9 +66,46 @@ class Board:
         self.last_robber_position = self.robber_position
         self.robber_position = new_position
         print(f"Robber moved to {new_position}")
+
+    def afforded_turn_moves(self, player_id):
+        """Returns a list of afforded moves for the given player during their turn."""
+        if player_id not in self.players:
+            raise ValueError(f"Player {player_id} does not exist.")
+
+        player_resources = self.players[player_id].get("resources", {})
+        moves = []
+
+        for action, cost in self.buying_actions.items():
+            affordable = True
+            for resource, amount in cost.items():
+                if player_resources.get(resource, 0) < amount:
+                    affordable = False
+                    break
+            if affordable:
+                moves.append(action)
+
+
+        return moves
     
+    def legal_turn_moves(self, player_id):
+        """Returns a list of legal moves for the given player."""
+        if player_id not in self.players:
+            raise ValueError(f"Player {player_id} does not exist.")
+        
+        afforded_cards = self.afforded_turn_moves(player_id)
+        
+        legal_moves = []
+        for action in afforded_cards:
+            if action == BuildingType.CITY:
+                for node in self.graph.nodes:
+                    if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == player_id and self.graph.nodes[node].get('building_type') == BuildingType.VILLAGE:
+                        legal_moves.append((action, node))
+            elif action == BuildingType.DEVELOPMENT_CARD:
+                legal_moves.append((action, None))
+        
+        return legal_moves
 
-
+        
         
 if __name__ == "__main__":
     # Example usage

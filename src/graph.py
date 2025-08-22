@@ -21,6 +21,8 @@ class NodeType(Enum):
 class BuildingType(Enum):
     VILLAGE = auto()
     CITY = auto()
+    ROAD = auto()
+    DEVELOPMENT_CARD = auto()
 
 class Resource(Enum):
     WOOD = auto()

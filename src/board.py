@@ -1,5 +1,5 @@
 from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure, NodeType, Resource, BuildingType, TurnAction, DevelopmentCardType
-
+import itertools
 
 class Board:
     def __init__(self, players, cards=None):
@@ -136,6 +136,8 @@ class Board:
             print(f"Player {player_id} has development card: {development_card}")
             # If development_card is a tuple like (DevelopmentCardType.KNIGHT, 0), extract the type
             card_type = development_card[0] if isinstance(development_card, tuple) else development_card
+            if development_card[1] != 0: # 0 means that it can be played this turn
+                continue
             if card_type == DevelopmentCardType.KNIGHT:
                 print(f"Adding knight moves for player {player_id}")
                 for node in self.graph.nodes:  # All land nodes except current and last robber position
@@ -172,8 +174,6 @@ class Board:
                                         if road_edge.get('owner') == 0:
                                             legal_moves.append((TurnAction.PLAY_ROAD_BUILDING, first_road[1], first_road[2], connected_node, neighbor))
                 legal_moves.extend(road_building_moves)          
-                # Remove duplicates
-                legal_moves = list(set(legal_moves))
                 
             elif card_type == DevelopmentCardType.MONOPOLY:
                 for resource in Resource:
@@ -191,11 +191,41 @@ class Board:
                 for resource_type in Resource:
                     if resource_type != resource:
                         legal_moves.append((TurnAction.TRADE_BANK, resource, resource_type))
+        
+        available_cards = []
+        for resource, amount in self.players[player_id].get("resources", {}).items():
+            available_cards.extend([resource] * amount)  
 
-        legal_moves.append((TurnAction.END_TURN, None)) # Always allow ending the turn
+        resources = [r for r, amt in self.players[player_id].get("resouces", {}) if amt > 0]
+
+    # --- Offered: 1 eller 2 resurser ---
+        for size in [1, 2]:
+            for offered_combo in itertools.combinations_with_replacement(resources, size):
+                offered_counts = {r: offered_combo.count(r) for r in set(offered_combo)}
+                if all(self.players[player_id].get("resouces", {}) >= count for r, count in offered_counts.items()):
+                    # Requested
+                    possible_request_resources = [r for r in Resource if r not in offered_counts]
+                    for req_size in [1, 2]:
+                        for requested_combo in itertools.combinations_with_replacement(possible_request_resources, req_size):
+                            requested_counts = {r: requested_combo.count(r) for r in set(requested_combo)}
+                            # Skip the case where both offered and requested sizes are 2
+                            if size == 2 and req_size == 2:
+                                continue
+
+                            legal_moves.append(
+                                (TurnAction.TRADE_PLAYER, offered_counts, requested_counts)
+                            )
+
+            legal_moves.append((TurnAction.END_TURN, None)) # Always allow ending the turn
+           
 
                                 
-        
+        # Remove duplicates
+        seen = []
+        for move in legal_moves:
+            if move not in seen:
+                seen.append(move)
+        legal_moves = seen
         return legal_moves
 
         

@@ -21,6 +21,8 @@ class GameState:
             "dev_cards": [],
             "has_longest_road": False,
             "has_largest_army": False,
+            "knights_played": 0,
+            "owned_ports": []
             }
             for pid in range(1, number_of_players + 1)
         }
@@ -60,7 +62,7 @@ class GameState:
         if card_type not in DevelopmentCardType:
             raise ValueError(f"Invalid development card type: {card_type}")
         
-        self.players[player_id]["development_cards"].append((card_type, 0)) # (card_type, turns_until_playable)  SHOULD BE 1 NORMALLY!!!
+        self.players[player_id]["development_cards"].append((card_type, 1)) # (card_type, turns_until_playable)  SHOULD BE 1 NORMALLY!!!
         self.update_board()
 
     def update_board(self):
@@ -85,12 +87,12 @@ if __name__ == "__main__":
     #game_state.give_development_card(2, DevelopmentCardType.KNIGHT)
     #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
-    #game_state.give_development_card(2, DevelopmentCardType.MONOPOLY)
+    game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
     #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
-    game_state.give_resource(1, Resource.WOOD, 5)
-    game_state.give_resource(1, Resource.BRICK, 0)
-    game_state.give_resource(1, Resource.ORE, 3)
-    game_state.give_resource(1, Resource.SHEEP, 4)
+    game_state.give_resource(1, Resource.WOOD, 3)
+    game_state.give_resource(1, Resource.BRICK, 8)
+    game_state.give_resource(1, Resource.ORE, 0)
+    game_state.give_resource(1, Resource.SHEEP, 7)
     game_state.give_resource(1, Resource.WHEAT, 0)
     game_state.board.print_graph()
     #print(f"Legal moves for player one: {game_state.legal_moves(1)}")

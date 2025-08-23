@@ -186,6 +186,14 @@ class Board:
                 # Victory point cards are played automatically when drawn
                 continue
 
+        for resource, amount in self.players[player_id].get("resources", {}).items():
+            if amount >= 4:
+                for resource_type in Resource:
+                    if resource_type != resource:
+                        legal_moves.append((TurnAction.TRADE_BANK, resource, resource_type))
+
+        legal_moves.append((TurnAction.END_TURN, None)) # Always allow ending the turn
+
                                 
         
         return legal_moves

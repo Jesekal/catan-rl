@@ -1,5 +1,5 @@
 from board import Board
-from graph import NodeType, Resource, BuildingType, get_building_node_name
+from graph import NodeType, Resource, BuildingType, get_building_node_name, DevelopmentCardType
 
 class GameState:
     def __init__(self, number_of_players=4):
@@ -53,6 +53,16 @@ class GameState:
             self.players[player_id]["resources"][resource] = float('inf')
         self.update_board()
 
+    def give_development_card(self, player_id, card_type):
+        """Gives a development card to a player."""
+        if player_id not in self.players:
+            raise ValueError(f"Player {player_id} does not exist.")
+        if card_type not in DevelopmentCardType:
+            raise ValueError(f"Invalid development card type: {card_type}")
+        
+        self.players[player_id]["development_cards"].append((card_type, 0)) # (card_type, turns_until_playable)  SHOULD BE 1 NORMALLY!!!
+        self.update_board()
+
     def update_board(self):
         self.board.players = self.players
         self.board.robber_position = self.robber_position
@@ -62,14 +72,21 @@ class GameState:
 
     
 
+    
+
 if __name__ == "__main__":
     # Example usage
     game_state = GameState(number_of_players=4)
 
     game_state.board.build_settlement(1, get_building_node_name(0, 0))
     game_state.board.build_road(2, get_building_node_name(5, 2), get_building_node_name(4, 1))
-    game_state.infinite_resources(2)
-    
+    game_state.board.build_road(2, get_building_node_name(2, 2), get_building_node_name(1, 2))
+    #game_state.infinite_resources(2)
+    #game_state.give_development_card(2, DevelopmentCardType.KNIGHT)
+    #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
+    game_state.give_development_card(2, DevelopmentCardType.ROAD_BUILDING)
+    #game_state.give_development_card(2, DevelopmentCardType.MONOPOLY)
+    #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
     game_state.give_resource(1, Resource.WOOD, 2)
     game_state.give_resource(1, Resource.BRICK, 2)
     game_state.give_resource(1, Resource.ORE, 3)
@@ -78,4 +95,5 @@ if __name__ == "__main__":
     game_state.board.print_graph()
     #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     print(f"Legal moves for player two: {game_state.legal_moves(2)}")
-    print(game_state.board.afforded_turn_moves(2))
+    print(len(game_state.legal_moves(2)))
+

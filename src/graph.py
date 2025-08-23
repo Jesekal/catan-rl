@@ -31,6 +31,27 @@ class Resource(Enum):
     WHEAT = auto()
     SHEEP = auto()
 
+class TurnAction(Enum):
+    BUILD_ROAD = auto()
+    BUILD_VILLAGE = auto()
+    BUILD_CITY = auto()
+    BUY_DEVELOPMENT_CARD = auto()
+    PLAY_KNIGHT = auto()
+    PLAY_ROAD_BUILDING = auto()
+    PLAY_YEAR_OF_PLENTY = auto()
+    PLAY_MONOPOLY = auto()
+    TRADE_BANK = auto()
+    TRADE_PORT = auto()
+    TRADE_PLAYER = auto()
+    END_TURN = auto()
+
+class DevelopmentCardType(Enum):
+    KNIGHT = auto()
+    VICTORY_POINT = auto()
+    ROAD_BUILDING = auto()
+    YEAR_OF_PLENTY = auto()
+    MONOPOLY = auto()
+
 # --- Constants ---
 
 FOURPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 5, 5, 4, 4, 3]

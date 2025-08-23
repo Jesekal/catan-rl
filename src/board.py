@@ -15,7 +15,6 @@ class Board:
             BuildingType.DEVELOPMENT_CARD: {Resource.ORE: 1, Resource.WHEAT: 1, Resource.SHEEP: 1},
         }
 
-
     def setup_graph(self):
         """Initializes the graph representation of the board."""
         self.graph = setup_board(self.number_of_players)
@@ -27,6 +26,16 @@ class Board:
             if self.graph.nodes[node].get('terrain') == TileType.DESERT:
                 return node
         return None
+    
+    def print_ports(self):
+        """Prints the positions and types of all ports on the board."""
+        print("Ports on the board:")
+        for node in self.graph.nodes:
+            if self.graph.nodes[node].get('node_type') == NodeType.PORT:
+                port_type = self.graph.nodes[node].get('resource_type')
+                ratio = self.graph.nodes[node].get('ratio')
+                print(f"{node}Type: {port_type}. Ratio: {ratio}")
+ 
     
     def build_road(self, player_id, start_node, end_node):
         """Builds a road for the given player between two nodes."""
@@ -65,7 +74,6 @@ class Board:
         
         self.last_robber_position = self.robber_position
         self.robber_position = new_position
-        print(f"Robber moved to {new_position}")
 
     def afforded_turn_moves(self, player_id):
         """Returns a list of afforded moves for the given player during their turn."""
@@ -133,13 +141,11 @@ class Board:
             
         # Add moves for playing development cards
         for development_card in self.players[player_id].get("development_cards", []):
-            print(f"Player {player_id} has development card: {development_card}")
             # If development_card is a tuple like (DevelopmentCardType.KNIGHT, 0), extract the type
             card_type = development_card[0] if isinstance(development_card, tuple) else development_card
             if development_card[1] != 0: # 0 means that it can be played this turn
                 continue
             if card_type == DevelopmentCardType.KNIGHT:
-                print(f"Adding knight moves for player {player_id}")
                 for node in self.graph.nodes:  # All land nodes except current and last robber position
                     if self.graph.nodes[node].get('node_type') == NodeType.LAND and node != self.robber_position and node != self.last_robber_position: 
                         legal_moves.append((TurnAction.PLAY_KNIGHT, node)) 
@@ -217,8 +223,24 @@ class Board:
                             )
 
             legal_moves.append((TurnAction.END_TURN, None)) # Always allow ending the turn
-           
 
+        # Legal port trades
+        for node in self.graph.nodes:
+            if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == player_id:
+                for neighbor in self.graph.neighbors(node):
+                    if self.graph.nodes[neighbor].get('node_type') == NodeType.PORT:
+                        port_type = self.graph.nodes[neighbor].get('resource_type')
+                        if port_type == None:  # Generic 3:1 port
+                            for resource in Resource:
+                                if self.players[player_id].get("resources", {}).get(resource, 0) >= 3:
+                                    for request_resource in Resource:
+                                        if request_resource != resource:
+                                            legal_moves.append((TurnAction.TRADE_PORT, {resource: 3}, {request_resource: 1}))
+                        else:
+                            if self.players[player_id].get("resources", {}).get(port_type, 0) >= 2:
+                                for request_resource in Resource:
+                                    if request_resource != port_type:
+                                        legal_moves.append((TurnAction.TRADE_PORT, {port_type: 2}, {request_resource: 1}))
                                 
         # Remove duplicates
         seen = []

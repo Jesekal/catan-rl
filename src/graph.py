@@ -74,11 +74,11 @@ FOURPLAYER_PORT_TYPES = [
     ("3:1", None),
     ("3:1", None),
     ("3:1", None),
-    ("2:1", TileType.FOREST),
-    ("2:1", TileType.FIELD),
-    ("2:1", TileType.MOUNTAIN),
-    ("2:1", TileType.HILL),
-    ("2:1", TileType.PASTURE),
+    ("2:1", Resource.WOOD),
+    ("2:1", Resource.BRICK),
+    ("2:1", Resource.SHEEP),
+    ("2:1", Resource.WHEAT),
+    ("2:1", Resource.ORE),
 ]
 
 SIXPLAYER_BUILDING_NODES_PER_ROW = [3, 4, 4, 5, 5, 6, 6, 7, 7, 6, 6, 5, 5, 4, 4, 3]
@@ -100,7 +100,7 @@ SIXPLAYER_PORT_POSITIONS = [
 ]
 SIXPLAYER_PORT_TYPES = FOURPLAYER_PORT_TYPES + [
     ("3:1", None), 
-    ("2:1", TileType.FIELD),
+    ("2:1", Resource.WHEAT),
 ]
 
 
@@ -305,7 +305,7 @@ def create_ports():
         if building_node_name_2 not in G.nodes:
             continue
         port_node_name = get_port_node_name(building_node_name, building_node_name_2)
-        G.add_node(port_node_name, node_type=NodeType.PORT, ratio=port_ratio, tile_type=tile_type)
+        G.add_node(port_node_name, node_type=NodeType.PORT, ratio=port_ratio, resource_type=tile_type)
         G.add_edge(building_node_name, port_node_name, owner=None)
         G.add_edge(building_node_name_2, port_node_name, owner=None)
 

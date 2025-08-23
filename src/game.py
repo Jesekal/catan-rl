@@ -22,7 +22,6 @@ class GameState:
             "has_longest_road": False,
             "has_largest_army": False,
             "knights_played": 0,
-            "owned_ports": []
             }
             for pid in range(1, number_of_players + 1)
         }
@@ -65,6 +64,9 @@ class GameState:
         self.players[player_id]["development_cards"].append((card_type, 1)) # (card_type, turns_until_playable)  SHOULD BE 1 NORMALLY!!!
         self.update_board()
 
+    def print_ports(self):
+        self.board.print_ports()
+
     def update_board(self):
         self.board.players = self.players
         self.board.robber_position = self.robber_position
@@ -90,12 +92,13 @@ if __name__ == "__main__":
     game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
     #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
     game_state.give_resource(1, Resource.WOOD, 3)
-    game_state.give_resource(1, Resource.BRICK, 8)
+    game_state.give_resource(1, Resource.BRICK, 0)
     game_state.give_resource(1, Resource.ORE, 0)
-    game_state.give_resource(1, Resource.SHEEP, 7)
+    game_state.give_resource(1, Resource.SHEEP, 0)
     game_state.give_resource(1, Resource.WHEAT, 0)
     game_state.board.print_graph()
     #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
+    game_state.print_ports()
     print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     print(len(game_state.legal_moves(1)))
 

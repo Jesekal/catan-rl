@@ -143,6 +143,7 @@ class Board:
                         legal_moves.append((TurnAction.PLAY_KNIGHT, node)) 
             elif card_type == DevelopmentCardType.ROAD_BUILDING:
                 road_building_moves = []
+                # Choose first road build move
                 for edge in self.graph.edges:
                     if self.graph.edges[edge].get('owner') == player_id: # Owned by player
                         connected_node1 = edge[0]
@@ -170,24 +171,20 @@ class Board:
                                         road_edge = grapgh_after_first_road.get_edge_data(connected_node, neighbor)
                                         if road_edge.get('owner') == 0:
                                             legal_moves.append((TurnAction.PLAY_ROAD_BUILDING, first_road[1], first_road[2], connected_node, neighbor))
-
-
-
                 legal_moves.extend(road_building_moves)          
                 # Remove duplicates
                 legal_moves = list(set(legal_moves))
                 
-                
-            # elif card_type == DevelopmentCardType.MONOPOLY:
-            #     for resource in Resource:
-            #         legal_moves.append((TurnAction.PLAY_MONOPOLY, resource))
-            # elif card_type == DevelopmentCardType.YEAR_OF_PLENTY:
-            #     for resource1 in Resource:
-            #         for resource2 in Resource:
-            #             legal_moves.append((TurnAction.PLAY_YEAR_OF_PLENTY, resource1, resource2))
-            # elif card_type == DevelopmentCardType.VICTORY_POINT:
-            #     # Victory point cards are played automatically when drawn
-            #     continue
+            elif card_type == DevelopmentCardType.MONOPOLY:
+                for resource in Resource:
+                    legal_moves.append((TurnAction.PLAY_MONOPOLY, resource))
+            elif card_type == DevelopmentCardType.YEAR_OF_PLENTY:
+                for resource1 in Resource:
+                    for resource2 in Resource:
+                        legal_moves.append((TurnAction.PLAY_YEAR_OF_PLENTY, resource1, resource2))
+            elif card_type == DevelopmentCardType.VICTORY_POINT:
+                # Victory point cards are played automatically when drawn
+                continue
 
                                 
         

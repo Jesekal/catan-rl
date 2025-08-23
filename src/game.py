@@ -84,7 +84,7 @@ if __name__ == "__main__":
     #game_state.infinite_resources(2)
     #game_state.give_development_card(2, DevelopmentCardType.KNIGHT)
     #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
-    game_state.give_development_card(2, DevelopmentCardType.ROAD_BUILDING)
+    game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     #game_state.give_development_card(2, DevelopmentCardType.MONOPOLY)
     #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
     game_state.give_resource(1, Resource.WOOD, 2)

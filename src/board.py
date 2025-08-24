@@ -43,6 +43,7 @@ class Board:
             raise ValueError(f"Player {player_id} does not exist.")
         try:
             self.graph, self.players = add_road(self.graph, self.players, player_id, start_node, end_node)
+            return self.players    # Give game the latest state
         except Exception as e:
             print(f"Failed to build road: {e}")
             raise
@@ -95,7 +96,7 @@ class Board:
 
         return moves
     
-    def legal_turn_moves(self, player_id):
+    def legal_turn_moves(self, player_id, phase):
         """Returns a list of legal moves for the given player."""
         if player_id not in self.players:
             raise ValueError(f"Player {player_id} does not exist.")
@@ -222,7 +223,7 @@ class Board:
                                 (TurnAction.TRADE_PLAYER, offered_counts, requested_counts)
                             )
 
-            legal_moves.append((TurnAction.END_TURN, None)) # Always allow ending the turn
+        
 
         # Legal port trades
         for node in self.graph.nodes:
@@ -248,6 +249,21 @@ class Board:
             if move not in seen:
                 seen.append(move)
         legal_moves = seen
+
+        if phase == 0:  #Start phase
+            # Place a building and a connected road
+            for node in self.graph.nodes:
+                if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == 0:
+                    no_adjacent_buildings = True
+                    for neigbor in self.graph.neighbors(node):
+                        if self.graph.nodes[neigbor].get('node_type') == NodeType.BUILDING and self.graph.nodes[neigbor].get('owner') != 0:
+                            no_adjacent_buildings = False
+                    if no_adjacent_buildings:
+                        for neigbor in self.graph.neighbors(node):
+                            if self.graph.nodes[neigbor].get('node_type') == NodeType.BUILDING:
+                                legal_moves.append((TurnAction.PLACE_INITIAL_BUILDING, node, neigbor))
+        else:
+            legal_moves.append((TurnAction.END_TURN, None)) # Allow ending the turn except in start phase
         return legal_moves
 
         

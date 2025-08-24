@@ -9,7 +9,7 @@ Python implementation of Settlers of Catan with a reinforcement learning AI agen
 [x] Port nodes
 [x] Functions for building + "owners"
     Game loop
-    Resources
-    Rules
+[x] Resources
+[x] Rules
     Bots
     Profit?

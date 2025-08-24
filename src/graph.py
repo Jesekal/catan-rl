@@ -43,6 +43,7 @@ class TurnAction(Enum):
     TRADE_BANK = auto()
     TRADE_PORT = auto()
     TRADE_PLAYER = auto()
+    PLACE_INITIAL_BUILDING = auto()
     END_TURN = auto()
 
 class DevelopmentCardType(Enum):

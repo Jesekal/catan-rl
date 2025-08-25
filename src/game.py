@@ -91,17 +91,19 @@ class Game:
         
         self.update_board()
 
-    def build_road(self, player_id, params):
-        start_node = params[0]
-        second_node = params[1]
+    def build_road(self, player_id, nodes):
+        """Builds a road for selected player"""
+        start_node = nodes[0]
+        second_node = nodes[1]
         self.players = self.board.build_road(player_id, start_node, second_node)
         self.players[player_id]['resources'][Resource.BRICK] -= 1
         self.players[player_id]['resources'][Resource.WOOD] -= 1
         if self.players[player_id]['resources'][Resource.BRICK] < 0 or self.players[player_id]['resources'][Resource.WOOD] < 0:
             raise ValueError(f'Build road was not legal since it resulted in wood: {self.players[player_id]['resources'][Resource.WOOD]}. Brick: {self.players[player_id]['resources'][Resource.BRICK]}')
 
-    def build_village(self, player_id, params):
-        node = params[0]
+    def build_village(self, player_id, node):
+        """Builds a village for player on node and update resources accordingly"""
+        node = node[0]  # Isolate tuple
         self.players = self.board.build_settlement(player_id, node)
         self.players[player_id]['resources'][Resource.BRICK] -= 1
         self.players[player_id]['resources'][Resource.WOOD] -= 1
@@ -110,6 +112,14 @@ class Game:
         if self.players[player_id]['resources'][Resource.BRICK] < 0 or self.players[player_id]['resources'][Resource.WOOD] < 0 or self.players[player_id]['resources'][Resource.SHEEP] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
             raise ValueError(f'Build Village was not legal since it resulted in wood: {self.players[player_id]['resources']}')
                                                                                        
+    def build_city(self, player_id, node):
+        """Builds city for player on coordinates and update resources accordingly"""
+        node = node[0]
+        self.players = self.board.build_settlement(player_id, node)
+        self.players[player_id]['resources'][Resource.WHEAT] -= 2
+        self.players[player_id]['resources'][Resource.ORE] -= 3
+        if  self.players[player_id]['resources'][Resource.ORE] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
+            raise ValueError(f'Build Village was not legal since it resulted in wood: {self.players[player_id]['resources']}')
 
         
 
@@ -202,15 +212,21 @@ if __name__ == "__main__":
     #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
     game_state.give_resource(1, Resource.WOOD, 1)
     game_state.give_resource(1, Resource.BRICK, 1)
-    # game_state.give_resource(1, Resource.ORE, 1)
+    game_state.give_resource(1, Resource.ORE, 3)
     game_state.give_resource(1, Resource.SHEEP, 1)
-    game_state.give_resource(1, Resource.WHEAT, 1)
+    game_state.give_resource(1, Resource.WHEAT, 3)
     
     # #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # game_state.print_ports()
     print(game_state.players[1]['resources'])
     print(f"Legal moves for player one: {game_state.legal_moves(1)}")
-    print(game_state.legal_moves(1)[0])
+    print(game_state.legal_moves(1)[4])
     
+    game_state.apply_action(1, game_state.legal_moves(1)[4])
+    
+    print(game_state.players[1]['resources'])
+    print(f"Legal moves for player one: {game_state.legal_moves(1)}")
+    game_state.apply_action(1, game_state.legal_moves(1)[0])
+    print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # print(len(game_state.legal_moves(1)))
 

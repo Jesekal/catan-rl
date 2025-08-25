@@ -54,6 +54,7 @@ class Board:
             raise ValueError(f"Player {player_id} does not exist.")
         try:
             self.graph, self.players = add_building(self.graph, self.players, player_id, node)
+            return self.players
         except Exception as e:
             print(f"Failed to build settlement: {e}")
             raise

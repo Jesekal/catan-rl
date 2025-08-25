@@ -94,11 +94,24 @@ class Game:
     def build_road(self, player_id, params):
         start_node = params[0]
         second_node = params[1]
-        new_players = self.board.build_road(player_id, start_node, second_node)
-        self.players = new_players
+        self.players = self.board.build_road(player_id, start_node, second_node)
         self.players[player_id]['resources'][Resource.BRICK] -= 1
         self.players[player_id]['resources'][Resource.WOOD] -= 1
-        print()
+        if self.players[player_id]['resources'][Resource.BRICK] < 0 or self.players[player_id]['resources'][Resource.WOOD] < 0:
+            raise ValueError(f'Build road was not legal since it resulted in wood: {self.players[player_id]['resources'][Resource.WOOD]}. Brick: {self.players[player_id]['resources'][Resource.BRICK]}')
+
+    def build_village(self, player_id, params):
+        node = params[0]
+        self.players = self.board.build_settlement(player_id, node)
+        self.players[player_id]['resources'][Resource.BRICK] -= 1
+        self.players[player_id]['resources'][Resource.WOOD] -= 1
+        self.players[player_id]['resources'][Resource.WHEAT] -= 1
+        self.players[player_id]['resources'][Resource.SHEEP] -= 1
+        if self.players[player_id]['resources'][Resource.BRICK] < 0 or self.players[player_id]['resources'][Resource.WOOD] < 0 or self.players[player_id]['resources'][Resource.SHEEP] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
+            raise ValueError(f'Build Village was not legal since it resulted in wood: {self.players[player_id]['resources']}')
+                                                                                       
+
+        
 
     def next_round(self):
         self.round += 1
@@ -139,13 +152,13 @@ class Game:
         self.players[player_id]["resources"][resource_type] += amount
         self.update_board()
 
-    def infinite_resources(self, player_id):
-        """Gives infinite resources to a player for testing purposes."""
+    def set_resources(self, player_id, amoun):
+        """Gives resources to a player for testing purposes."""
         if player_id not in self.players:
             raise ValueError(f"Player {player_id} does not exist.")
         
         for resource in Resource:
-            self.players[player_id]["resources"][resource] = float('inf')
+            self.players[player_id]["resources"][resource] = amoun
         self.update_board()
 
     def give_development_card(self, player_id, card_type):
@@ -181,24 +194,23 @@ if __name__ == "__main__":
     game_state.next_round()
     game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
     # game_state.board.build_road(2, get_building_node_name(2, 2), get_building_node_name(1, 2))
-    # #game_state.infinite_resources(2)
+    #game_state.set_resources(1, 1)
     # #game_state.give_development_card(2, DevelopmentCardType.KNIGHT)
     # #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
-    # #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
+    #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
     game_state.give_resource(1, Resource.WOOD, 1)
     game_state.give_resource(1, Resource.BRICK, 1)
-    # game_state.give_resource(1, Resource.ORE, 0)
-    # game_state.give_resource(1, Resource.SHEEP, 0)
-    # game_state.give_resource(1, Resource.WHEAT, 0)
+    # game_state.give_resource(1, Resource.ORE, 1)
+    game_state.give_resource(1, Resource.SHEEP, 1)
+    game_state.give_resource(1, Resource.WHEAT, 1)
     
     # #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # game_state.print_ports()
+    print(game_state.players[1]['resources'])
     print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     print(game_state.legal_moves(1)[0])
-    game_state.apply_action(1, game_state.legal_moves(1)[0])
-    game_state.board.print_graph()
-    print(f"Legal moves for player one: {game_state.legal_moves(1)}")
+    
     # print(len(game_state.legal_moves(1)))
 

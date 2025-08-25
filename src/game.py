@@ -1,5 +1,6 @@
 from board import Board
 from graph import NodeType, Resource, BuildingType, get_building_node_name, DevelopmentCardType, TurnAction
+import random
 
 class Game:
     def __init__(self, number_of_players=4):
@@ -29,7 +30,16 @@ class Game:
             for pid in range(1, self.number_of_players + 1)
         }
 
-        self.board = Board(self.players, cards=None)
+        self.dev_deck = (
+            [DevelopmentCardType.KNIGHT] * 14
+            + [DevelopmentCardType.VICTORY_POINT] * 5
+            + [DevelopmentCardType.ROAD_BUILDING] * 2
+            + [DevelopmentCardType.YEAR_OF_PLENTY] * 2
+            + [DevelopmentCardType.MONOPOLY] * 2
+        )
+        random.shuffle(self.dev_deck)
+
+        self.board = Board(self.players, cards=self.dev_deck)
         self.board.setup_graph()
 
         return self._get_obs()
@@ -110,7 +120,7 @@ class Game:
         self.players[player_id]['resources'][Resource.WHEAT] -= 1
         self.players[player_id]['resources'][Resource.SHEEP] -= 1
         if self.players[player_id]['resources'][Resource.BRICK] < 0 or self.players[player_id]['resources'][Resource.WOOD] < 0 or self.players[player_id]['resources'][Resource.SHEEP] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
-            raise ValueError(f'Build Village was not legal since it resulted in wood: {self.players[player_id]['resources']}')
+            raise ValueError(f'Build Village was not legal since it resulted in: {self.players[player_id]['resources']}')
                                                                                        
     def build_city(self, player_id, node):
         """Builds city for player on coordinates and update resources accordingly"""
@@ -118,10 +128,20 @@ class Game:
         self.players = self.board.build_settlement(player_id, node)
         self.players[player_id]['resources'][Resource.WHEAT] -= 2
         self.players[player_id]['resources'][Resource.ORE] -= 3
-        if  self.players[player_id]['resources'][Resource.ORE] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
-            raise ValueError(f'Build Village was not legal since it resulted in wood: {self.players[player_id]['resources']}')
+        if self.players[player_id]['resources'][Resource.ORE] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
+            raise ValueError(f'Build city was not legal since it resulted in: {self.players[player_id]['resources']}')
 
-        
+    def buy_development_card(self, player_id):
+        self.players[player_id]['resources'][Resource.ORE] -= 1
+        self.players[player_id]['resources'][Resource.WHEAT] -= 1
+        self.players[player_id]['resources'][Resource.SHEEP] -= 1
+        if not self.dev_deck:
+            raise ValueError("No dev cards left in the deck")
+        if self.players[player_id]['resources'][Resource.ORE] < 0 or self.players[player_id]['resources'][Resource.SHEEP] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
+            raise ValueError(f'Buy dev-card was not legal since it resulted in: {self.players[player_id]['resources']}')
+        card = self.dev_deck.pop()
+        # Newly bought card is stored but usually not playable this turn
+        self.players[player_id]["development_cards"].append((card, 1))      # Cards until playable (1 in catan rules)
 
     def next_round(self):
         self.round += 1
@@ -189,9 +209,7 @@ class Game:
     def update_board(self):
         self.board.players = self.players
         self.board.robber_position = self.robber_position
-        self.board.phase = self.phase
-        self.board.round = self.round
-        self.board.current_player = self.current_player
+        self.board.cards = self.dev_deck
 
     
 
@@ -220,13 +238,13 @@ if __name__ == "__main__":
     # game_state.print_ports()
     print(game_state.players[1]['resources'])
     print(f"Legal moves for player one: {game_state.legal_moves(1)}")
-    print(game_state.legal_moves(1)[4])
+    print(game_state.legal_moves(1)[6])
     
-    game_state.apply_action(1, game_state.legal_moves(1)[4])
+    game_state.apply_action(1, game_state.legal_moves(1)[6])
     
     print(game_state.players[1]['resources'])
     print(f"Legal moves for player one: {game_state.legal_moves(1)}")
-    game_state.apply_action(1, game_state.legal_moves(1)[0])
-    print(f"Legal moves for player one: {game_state.legal_moves(1)}")
+    # game_state.apply_action(1, game_state.legal_moves(1)[0])
+    # print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # print(len(game_state.legal_moves(1)))
 

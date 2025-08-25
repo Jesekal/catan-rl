@@ -14,6 +14,7 @@ class Board:
             BuildingType.CITY: {Resource.ORE: 3, Resource.WHEAT: 2},
             BuildingType.DEVELOPMENT_CARD: {Resource.ORE: 1, Resource.WHEAT: 1, Resource.SHEEP: 1},
         }
+        self.cards = cards
 
     def setup_graph(self):
         """Initializes the graph representation of the board."""
@@ -112,7 +113,7 @@ class Board:
                 for node in self.graph.nodes:
                     if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == player_id and self.graph.nodes[node].get('building_type') == BuildingType.VILLAGE:
                         legal_moves.append((TurnAction.BUILD_CITY, node))
-            elif action == BuildingType.DEVELOPMENT_CARD:
+            elif action == BuildingType.DEVELOPMENT_CARD and self.cards:    # Deck is non-empty
                 legal_moves.append((TurnAction.BUY_DEVELOPMENT_CARD, None))
             elif action == BuildingType.ROAD:
                 for edge in self.graph.edges:

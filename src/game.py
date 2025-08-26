@@ -99,10 +99,25 @@ class Game:
             case TurnAction.END_TURN:
                 self.end_turn(player_id)
 
+            case TurnAction.PLAY_ROAD_BUILDING:
+                self.play_road_building(player_id, params)
+
             case _:
                 raise ValueError(f"Unknown action: {applied_action}")
         
         self.update_board()
+
+    def play_road_building(self, player_id, coordinates):
+        """Does the thing"""
+        node1, node2, node3, node4 = coordinates
+        self.board.build_road(player_id, node1, node2)
+        self.board.build_road(player_id, node3, node4)
+
+        for card in self.players[player_id]["development_cards"]:
+            if card[0] == DevelopmentCardType.ROAD_BUILDING and card[1] == 0:
+                self.players[player_id]["development_cards"].remove(card)
+                break
+        
 
     def trade_port(self, player_id, resources):
         give_dict = resources[0]
@@ -277,7 +292,19 @@ if __name__ == "__main__":
     game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
     # game_state.board.build_road(2, get_building_node_name(2, 2), get_building_node_name(1, 2))
     
-    # #game_state.give_development_card(2, DevelopmentCardType.KNIGHT)
+    game_state.give_development_card(1, DevelopmentCardType.ROAD_BUILDING)
+
+    while True:
+        for action in game_state.legal_moves(game_state.current_player):
+            if action[0] == TurnAction.END_TURN:
+                game_state.apply_action(game_state.current_player, action)
+        print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+        if game_state.current_player == 1:
+            break
+
+    game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[3])
+
+    game_state.board.print_graph()
     # #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
@@ -290,30 +317,26 @@ if __name__ == "__main__":
     # game_state.give_resource(2, Resource.ORE, 2)
     # game_state.give_resource(2, Resource.SHEEP, 2)
     # game_state.give_resource(2, Resource.WOOD, 2)
-    game_state.board.build_settlement(1, get_building_node_name(0, 0))
+    #game_state.board.build_settlement(1, get_building_node_name(0, 0))
     
-    for i in range(1000):
-        game_state.set_resources(1, 3)
-        print(f"Legal moves for current player: {game_state.legal_moves(game_state.current_player)}")
-        print("---------------------------")
-        print(game_state.players[game_state.current_player]['resources'])
-        for i, move in enumerate(game_state.legal_moves(1)):
-            if move[0] == TurnAction.TRADE_PORT:
-                print(move)
-                game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[i])
-                break
+    # for i in range(1000):
+    #     game_state.set_resources(1, 3)
+    #     # print(f"Legal moves for current player: {game_state.legal_moves(game_state.current_player)}")
+    #     # print("---------------------------")
+    #     # print(game_state.players[game_state.current_player]['resources'])
+    #     for i, move in enumerate(game_state.legal_moves(1)):
+    #         if move[0] == TurnAction.TRADE_PORT:
+    #             #print(move)
+    #             game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[i])
+    #             break
         
-        print(game_state.players[game_state.current_player]['resources'])
+    #     #print(game_state.players[game_state.current_player]['resources'])
     
     
     
-    # print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+    print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
 
-    # while True:
-    #     game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[0])
-    #     print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
-    #     if game_state.current_player == 1:
-    #         break
+    
         
     # print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
     # print(game_state.players[game_state.current_player]["development_cards"])

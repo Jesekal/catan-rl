@@ -132,6 +132,12 @@ class Game:
             raise ValueError(f'Build city was not legal since it resulted in: {self.players[player_id]['resources']}')
         
     def trade_bank(self, player_id, params):
+        give = params[0]
+        take = params[1]
+        self.players[player_id]['resources'][give] -= 4
+        self.players[player_id]['resources'][take] += 1
+        if self.players[player_id]['resources'][give] < 0:
+            raise ValueError(f'Trade bank resulted in negative: {give} for player {player_id}')
         pass
 
     def buy_development_card(self, player_id):
@@ -260,47 +266,46 @@ if __name__ == "__main__":
     # game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
     #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
-    game_state.give_resource(1, Resource.WOOD, 1)
+    game_state.give_resource(1, Resource.WOOD, 4)
     game_state.give_resource(1, Resource.BRICK, 0)
-    game_state.give_resource(1, Resource.ORE, 3)
-    game_state.give_resource(1, Resource.SHEEP, 1)
+    game_state.give_resource(1, Resource.ORE, 4)
+    game_state.give_resource(1, Resource.SHEEP, 0)
     game_state.give_resource(1, Resource.WHEAT, 3)
-    game_state.give_resource(2, Resource.WHEAT, 1)
-    game_state.give_resource(2, Resource.ORE, 1)
-    game_state.give_resource(2, Resource.SHEEP, 1)
+    game_state.give_resource(2, Resource.ORE, 2)
+    game_state.give_resource(2, Resource.SHEEP, 2)
     game_state.give_resource(2, Resource.WOOD, 2)
     game_state.board.build_settlement(2, get_building_node_name(2, 2))
     game_state.board.build_settlement(2, get_building_node_name(3, 4))
 
     
-    # #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
-    # game_state.print_ports()
-    print(game_state.players[game_state.current_player]['resources'])
+    
     print(f"Legal moves for current player: {game_state.legal_moves(game_state.current_player)}")
+    print("---------------------------")
     print(game_state.legal_moves(1)[0])
     
+    print(game_state.players[game_state.current_player]['resources'])
     game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[0])
     
     print(game_state.players[game_state.current_player]['resources'])
-    print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+    # print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
 
-    while True:
-        game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[0])
-        print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
-        if game_state.current_player == 1:
-            break
+    # while True:
+    #     game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[0])
+    #     print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+    #     if game_state.current_player == 1:
+    #         break
         
-    print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
-    print(game_state.players[game_state.current_player]["development_cards"])
-    if DevelopmentCardType.KNIGHT in game_state.players[game_state.current_player]["development_cards"][0]:
-        print("success")
-        print(game_state.legal_moves(game_state.current_player)[1])
-        print(game_state.players[game_state.current_player]['resources'])
-        print(game_state.players[2]['resources'])
-        game_state.apply_action(1, game_state.legal_moves(game_state.current_player)[1])
-        print(game_state.players[game_state.current_player]["development_cards"])
-        print(game_state.players[game_state.current_player]['resources'])
-        print(game_state.players[2]['resources'])
+    # print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+    # print(game_state.players[game_state.current_player]["development_cards"])
+    # if DevelopmentCardType.KNIGHT in game_state.players[game_state.current_player]["development_cards"][0]:
+    #     print("success")
+    #     print(game_state.legal_moves(game_state.current_player)[1])
+    #     print(game_state.players[game_state.current_player]['resources'])
+    #     print(game_state.players[2]['resources'])
+    #     game_state.apply_action(1, game_state.legal_moves(game_state.current_player)[1])
+    #     print(game_state.players[game_state.current_player]["development_cards"])
+    #     print(game_state.players[game_state.current_player]['resources'])
+    #     print(game_state.players[2]['resources'])
 
 
 

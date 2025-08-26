@@ -93,6 +93,9 @@ class Game:
             case TurnAction.TRADE_BANK:
                 self.trade_bank(player_id, params)
 
+            case TurnAction.TRADE_PORT:
+                self.trade_port(player_id, params)
+
             case TurnAction.END_TURN:
                 self.end_turn(player_id)
 
@@ -100,6 +103,21 @@ class Game:
                 raise ValueError(f"Unknown action: {applied_action}")
         
         self.update_board()
+
+    def trade_port(self, player_id, resources):
+        give_dict = resources[0]
+        take_dict = resources[1]
+        if len(give_dict) != 1 or len(take_dict) != 1:
+            raise ValueError("Port trade must specify exactly one give and one take resource.")
+
+        give_res, give_amt = list(give_dict.items())[0]
+        take_res, take_amt = list(take_dict.items())[0]
+
+        self.players[player_id]['resources'][give_res] -= give_amt
+        self.players[player_id]['resources'][take_res] += take_amt
+
+        if self.players[player_id]['resources'][give_res] < 0:
+            raise ValueError(f"Trade port resulted in negative resources for player {player_id}.")
 
     def build_road(self, player_id, nodes):
         """Builds a road for selected player"""
@@ -138,7 +156,6 @@ class Game:
         self.players[player_id]['resources'][take] += 1
         if self.players[player_id]['resources'][give] < 0:
             raise ValueError(f'Trade bank resulted in negative: {give} for player {player_id}')
-        pass
 
     def buy_development_card(self, player_id):
         self.players[player_id]['resources'][Resource.ORE] -= 1
@@ -254,39 +271,42 @@ class Game:
 
     
 if __name__ == "__main__":
-    # Example usage
     game_state = Game(number_of_players=4)
     game_state.next_round()
     game_state.next_round()
     game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
     # game_state.board.build_road(2, get_building_node_name(2, 2), get_building_node_name(1, 2))
-    #game_state.set_resources(1, 1)
+    
     # #game_state.give_development_card(2, DevelopmentCardType.KNIGHT)
     # #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
     #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
-    game_state.give_resource(1, Resource.WOOD, 4)
-    game_state.give_resource(1, Resource.BRICK, 0)
-    game_state.give_resource(1, Resource.ORE, 4)
-    game_state.give_resource(1, Resource.SHEEP, 0)
-    game_state.give_resource(1, Resource.WHEAT, 3)
-    game_state.give_resource(2, Resource.ORE, 2)
-    game_state.give_resource(2, Resource.SHEEP, 2)
-    game_state.give_resource(2, Resource.WOOD, 2)
-    game_state.board.build_settlement(2, get_building_node_name(2, 2))
-    game_state.board.build_settlement(2, get_building_node_name(3, 4))
-
+    # game_state.give_resource(1, Resource.WOOD, 4)
+    # game_state.give_resource(1, Resource.BRICK, 0)
+    # game_state.give_resource(1, Resource.ORE, 4)
+    # game_state.give_resource(1, Resource.SHEEP, 0)
+    # game_state.give_resource(1, Resource.WHEAT, 3)
+    # game_state.give_resource(2, Resource.ORE, 2)
+    # game_state.give_resource(2, Resource.SHEEP, 2)
+    # game_state.give_resource(2, Resource.WOOD, 2)
+    game_state.board.build_settlement(1, get_building_node_name(0, 0))
+    
+    for i in range(1000):
+        game_state.set_resources(1, 3)
+        print(f"Legal moves for current player: {game_state.legal_moves(game_state.current_player)}")
+        print("---------------------------")
+        print(game_state.players[game_state.current_player]['resources'])
+        for i, move in enumerate(game_state.legal_moves(1)):
+            if move[0] == TurnAction.TRADE_PORT:
+                print(move)
+                game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[i])
+                break
+        
+        print(game_state.players[game_state.current_player]['resources'])
     
     
-    print(f"Legal moves for current player: {game_state.legal_moves(game_state.current_player)}")
-    print("---------------------------")
-    print(game_state.legal_moves(1)[0])
     
-    print(game_state.players[game_state.current_player]['resources'])
-    game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[0])
-    
-    print(game_state.players[game_state.current_player]['resources'])
     # print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
 
     # while True:

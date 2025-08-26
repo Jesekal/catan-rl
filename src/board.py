@@ -224,7 +224,7 @@ class Board:
 
         resources = [r for r, amt in self.players[player_id].get("resouces", {}) if amt > 0]
 
-    # --- Offered: 1 eller 2 resurser ---
+    # --- Offered: 1 or 2 resurce ---
         for size in [1, 2]:
             for offered_combo in itertools.combinations_with_replacement(resources, size):
                 offered_counts = {r: offered_combo.count(r) for r in set(offered_combo)}

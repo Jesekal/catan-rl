@@ -72,11 +72,24 @@ class Board:
             raise ValueError("Robber is already at this position.")
         if new_position == self.last_robber_position:
             raise ValueError("Cannot move robber back to the last position.")
-        if new_position.get('node_type') != NodeType.LAND:
+        if self.graph.nodes[new_position].get('node_type') != NodeType.LAND:
             raise ValueError("Robber can only be moved to a land node.")
         
         self.last_robber_position = self.robber_position
         self.robber_position = new_position
+
+    def get_adjacent_players(self, land_node):
+        """Returns a list of players who got a building adjacent to a land node"""
+        if not self.graph.nodes[land_node].get('node_type') == NodeType.LAND:
+            raise ValueError("Not a land node.")
+        adjacent_players = set()
+        for neighbor in self.graph.neighbors(land_node):
+            if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING:
+                owner = self.graph.nodes[neighbor].get('owner')
+                if owner and owner != 0:
+                    adjacent_players.add(owner)
+        return list(adjacent_players)
+        
 
     def afforded_turn_moves(self, player_id):
         """Returns a list of afforded moves for the given player during their turn."""
@@ -144,14 +157,18 @@ class Board:
             
         # Add moves for playing development cards
         for development_card in self.players[player_id].get("development_cards", []):
-            # If development_card is a tuple like (DevelopmentCardType.KNIGHT, 0), extract the type
+            # If development_card is a list like (DevelopmentCardType.KNIGHT, 0), extract the type
             card_type = development_card[0] if isinstance(development_card, list) else development_card
             if development_card[1] != 0: # 0 means that it can be played this turn
                 continue
             if card_type == DevelopmentCardType.KNIGHT:
                 for node in self.graph.nodes:  # All land nodes except current and last robber position
-                    if self.graph.nodes[node].get('node_type') == NodeType.LAND and node != self.robber_position and node != self.last_robber_position: 
-                        legal_moves.append((TurnAction.PLAY_KNIGHT, node)) 
+                    if self.graph.nodes[node].get('node_type') == NodeType.LAND and node != self.robber_position and node != self.last_robber_position:
+                        adjacent_players = self.get_adjacent_players(node)
+                        if not adjacent_players:
+                            legal_moves.append((TurnAction.PLAY_KNIGHT, node, 0))
+                        for player in adjacent_players:
+                            legal_moves.append((TurnAction.PLAY_KNIGHT, node, player))
             elif card_type == DevelopmentCardType.ROAD_BUILDING:
                 road_building_moves = []
                 # Choose first road build move

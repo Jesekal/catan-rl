@@ -130,6 +130,9 @@ class Game:
         self.players[player_id]['resources'][Resource.ORE] -= 3
         if self.players[player_id]['resources'][Resource.ORE] < 0 or self.players[player_id]['resources'][Resource.WHEAT] < 0:
             raise ValueError(f'Build city was not legal since it resulted in: {self.players[player_id]['resources']}')
+        
+    def trade_bank(self, player_id, params):
+        pass
 
     def buy_development_card(self, player_id):
         self.players[player_id]['resources'][Resource.ORE] -= 1
@@ -142,6 +145,27 @@ class Game:
         card = self.dev_deck.pop()
         # Newly bought card is stored but usually not playable this turn
         self.players[player_id]["development_cards"].append([card, 1])      # Cards until playable (1 in catan rules)
+
+    def play_knight(self, player_id, params):
+        self.board.move_robber(params[0])   # Land node
+        player_to_steal_from = params[1]
+        if player_to_steal_from != 0:   # Is a player
+            if player_to_steal_from in self.players and player_to_steal_from != player_id:
+                # Gather all resources the victim has (repeat for each card)
+                victim_resources = []
+                for resource, count in self.players[player_to_steal_from]["resources"].items():
+                    victim_resources.extend([resource] * count)
+                if victim_resources:
+                    stolen_resource = random.choice(victim_resources)
+                    self.players[player_to_steal_from]["resources"][stolen_resource] -= 1
+                    self.players[player_id]["resources"][stolen_resource] += 1
+        
+        for card in self.players[player_id]["development_cards"]:  # Remove players knight card
+                if card[0] == DevelopmentCardType.KNIGHT and card[1] == 0:
+                    self.players[player_id]["development_cards"].remove(card)
+                    break
+
+
 
     def end_turn(self, player_id):
         for card in self.players[player_id]["development_cards"]:
@@ -223,9 +247,6 @@ class Game:
         self.board.cards = self.dev_deck
 
     
-
-    
-
 if __name__ == "__main__":
     # Example usage
     game_state = Game(number_of_players=4)
@@ -244,6 +265,13 @@ if __name__ == "__main__":
     game_state.give_resource(1, Resource.ORE, 3)
     game_state.give_resource(1, Resource.SHEEP, 1)
     game_state.give_resource(1, Resource.WHEAT, 3)
+    game_state.give_resource(2, Resource.WHEAT, 1)
+    game_state.give_resource(2, Resource.ORE, 1)
+    game_state.give_resource(2, Resource.SHEEP, 1)
+    game_state.give_resource(2, Resource.WOOD, 2)
+    game_state.board.build_settlement(2, get_building_node_name(2, 2))
+    game_state.board.build_settlement(2, get_building_node_name(3, 4))
+
     
     # #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # game_state.print_ports()
@@ -257,13 +285,25 @@ if __name__ == "__main__":
     print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
 
     while True:
-        game_state.apply_action(1, game_state.legal_moves(game_state.current_player)[0])
+        game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[0])
         print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
         if game_state.current_player == 1:
             break
         
     print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
     print(game_state.players[game_state.current_player]["development_cards"])
+    if DevelopmentCardType.KNIGHT in game_state.players[game_state.current_player]["development_cards"][0]:
+        print("success")
+        print(game_state.legal_moves(game_state.current_player)[1])
+        print(game_state.players[game_state.current_player]['resources'])
+        print(game_state.players[2]['resources'])
+        game_state.apply_action(1, game_state.legal_moves(game_state.current_player)[1])
+        print(game_state.players[game_state.current_player]["development_cards"])
+        print(game_state.players[game_state.current_player]['resources'])
+        print(game_state.players[2]['resources'])
+
+
+
     # game_state.apply_action(1, game_state.legal_moves(1)[0])
     # print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # print(len(game_state.legal_moves(1)))

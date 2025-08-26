@@ -207,7 +207,8 @@ class Board:
             elif card_type == DevelopmentCardType.YEAR_OF_PLENTY:
                 for resource1 in Resource:
                     for resource2 in Resource:
-                        legal_moves.append((TurnAction.PLAY_YEAR_OF_PLENTY, resource1, resource2))
+                        if resource1.value <= resource2.value:
+                            legal_moves.append((TurnAction.PLAY_YEAR_OF_PLENTY, resource1, resource2))
             elif card_type == DevelopmentCardType.VICTORY_POINT:
                 # Victory point cards are played automatically when drawn
                 continue

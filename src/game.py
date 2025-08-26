@@ -105,10 +105,25 @@ class Game:
             case TurnAction.PLAY_MONOPOLY:
                 self.play_monopoly(player_id, params)
 
+            case TurnAction.PLAY_YEAR_OF_PLENTY:
+                self.play_year_of_plenty(player_id, params)
+
             case _:
                 raise ValueError(f"Unknown action: {applied_action}")
         
         self.update_board()
+
+    def play_year_of_plenty(self, player_id, wished_resources):
+        for resource in wished_resources:
+            if resource not in Resource:
+                raise ValueError(f"Invalid resource type: {resource}")
+            self.players[player_id]["resources"][resource] += 1
+
+        for card in self.players[player_id]["development_cards"]:
+            if card[0] == DevelopmentCardType.YEAR_OF_PLENTY and card[1] == 0:
+                self.players[player_id]["development_cards"].remove(card)
+                break
+
 
     def play_monopoly(self, player_id, resource):
         resource = resource[0]
@@ -118,6 +133,11 @@ class Game:
             while self.players[player]['resources'][resource] > 0:
                 self.players[player]['resources'][resource] -= 1
                 self.players[player_id]['resources'][resource] += 1
+        for card in self.players[player_id]["development_cards"]:
+            if card[0] == DevelopmentCardType.MONOPOLY and card[1] == 0:
+                self.players[player_id]["development_cards"].remove(card)
+                break
+
             
 
     def play_road_building(self, player_id, coordinates):
@@ -304,16 +324,18 @@ if __name__ == "__main__":
     game_state.next_round()
     game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
     game_state.board.build_road(2, get_building_node_name(2, 2), get_building_node_name(1, 2))
+
+
     # game_state.give_resource(1, Resource.WOOD, 4)
     # game_state.give_resource(1, Resource.BRICK, 0)
     # game_state.give_resource(1, Resource.ORE, 4)
     # game_state.give_resource(1, Resource.SHEEP, 0)
-    game_state.give_resource(1, Resource.ORE, 3)
-    game_state.give_resource(2, Resource.ORE, 7)
-    game_state.give_resource(3, Resource.ORE, 0)
-    game_state.give_resource(4, Resource.ORE, 1)
+    # game_state.give_resource(1, Resource.ORE, 3)
+    # game_state.give_resource(2, Resource.ORE, 7)
+    # game_state.give_resource(3, Resource.ORE, 0)
+    # game_state.give_resource(4, Resource.ORE, 1)
     
-    game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
+    game_state.give_development_card(1, DevelopmentCardType.YEAR_OF_PLENTY)
 
     while True:
         for action in game_state.legal_moves(game_state.current_player):
@@ -323,7 +345,8 @@ if __name__ == "__main__":
         if game_state.current_player == 1:
             break
         
-    game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[2])
+    game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[7])
+
 
 
     print(f"Resource player one?? {game_state.players[game_state.current_player]['resources']}")

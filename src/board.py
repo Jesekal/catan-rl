@@ -145,7 +145,7 @@ class Board:
         # Add moves for playing development cards
         for development_card in self.players[player_id].get("development_cards", []):
             # If development_card is a tuple like (DevelopmentCardType.KNIGHT, 0), extract the type
-            card_type = development_card[0] if isinstance(development_card, tuple) else development_card
+            card_type = development_card[0] if isinstance(development_card, list) else development_card
             if development_card[1] != 0: # 0 means that it can be played this turn
                 continue
             if card_type == DevelopmentCardType.KNIGHT:

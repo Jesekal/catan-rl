@@ -141,7 +141,18 @@ class Game:
             raise ValueError(f'Buy dev-card was not legal since it resulted in: {self.players[player_id]['resources']}')
         card = self.dev_deck.pop()
         # Newly bought card is stored but usually not playable this turn
-        self.players[player_id]["development_cards"].append((card, 1))      # Cards until playable (1 in catan rules)
+        self.players[player_id]["development_cards"].append([card, 1])      # Cards until playable (1 in catan rules)
+
+    def end_turn(self, player_id):
+        for card in self.players[player_id]["development_cards"]:
+            card[1] = 0     # Set card to playable
+        
+        # Rotate to next player
+        self.current_player = (self.current_player % self.number_of_players) + 1
+        # If back to player one, next phase
+        if self.current_player == 1:
+            self.next_round()
+
 
     def next_round(self):
         self.round += 1
@@ -198,7 +209,7 @@ class Game:
         if card_type not in DevelopmentCardType:
             raise ValueError(f"Invalid development card type: {card_type}")
         
-        self.players[player_id]["development_cards"].append((card_type, 1)) # (card_type, turns_until_playable)  SHOULD BE 1 NORMALLY!!!
+        self.players[player_id]["development_cards"].append([card_type, 1]) # (card_type, turns_until_playable)  SHOULD BE 1 NORMALLY!!!
         self.update_board()
 
     
@@ -229,21 +240,30 @@ if __name__ == "__main__":
     # game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)
     #game_state.give_development_card(2, DevelopmentCardType.YEAR_OF_PLENTY)
     game_state.give_resource(1, Resource.WOOD, 1)
-    game_state.give_resource(1, Resource.BRICK, 1)
+    game_state.give_resource(1, Resource.BRICK, 0)
     game_state.give_resource(1, Resource.ORE, 3)
     game_state.give_resource(1, Resource.SHEEP, 1)
     game_state.give_resource(1, Resource.WHEAT, 3)
     
     # #print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # game_state.print_ports()
-    print(game_state.players[1]['resources'])
-    print(f"Legal moves for player one: {game_state.legal_moves(1)}")
-    print(game_state.legal_moves(1)[6])
+    print(game_state.players[game_state.current_player]['resources'])
+    print(f"Legal moves for current player: {game_state.legal_moves(game_state.current_player)}")
+    print(game_state.legal_moves(1)[0])
     
-    game_state.apply_action(1, game_state.legal_moves(1)[6])
+    game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[0])
     
-    print(game_state.players[1]['resources'])
-    print(f"Legal moves for player one: {game_state.legal_moves(1)}")
+    print(game_state.players[game_state.current_player]['resources'])
+    print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+
+    while True:
+        game_state.apply_action(1, game_state.legal_moves(game_state.current_player)[0])
+        print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+        if game_state.current_player == 1:
+            break
+        
+    print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+    print(game_state.players[game_state.current_player]["development_cards"])
     # game_state.apply_action(1, game_state.legal_moves(1)[0])
     # print(f"Legal moves for player one: {game_state.legal_moves(1)}")
     # print(len(game_state.legal_moves(1)))

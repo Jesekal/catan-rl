@@ -61,7 +61,8 @@ class Phase(Enum):
     TRADE_RESPONSE = auto()   
     DISCARD = auto()         
     ROBBER_PLACEMENT = auto()  
-    SETUP = auto()            
+    SETUP = auto()     
+    ROLL_DICE = auto()       
 
 
 # --- Constants ---

@@ -21,6 +21,52 @@ class Board:
         self.graph = setup_board(self.number_of_players)
         self.robber_position = self.get_desert_position()
 
+    def get_land_nodes_by_value(self, value):
+        """Returns a list of land nodes with a specified value (2-12)"""
+        if value > 12 or value < 2:
+            raise ValueError("Only values 2-12 exists")
+        if value == 7:
+            raise ValueError("No land nodes are 7")
+        
+        nodes = []
+        for node in self.graph.nodes:
+            if self.graph.nodes[node].get('number') == value:
+                nodes.append(node)
+        
+        return nodes
+    
+    def get_terrain_of_node(self, land_node):
+        """Returns the terrain type of a land node."""
+        if land_node not in self.graph.nodes:
+            raise ValueError("Node does not exist in the graph.")
+        if self.graph.nodes[land_node].get('node_type') != NodeType.LAND:
+            raise ValueError("Node is not a land node.")
+        return self.graph.nodes[land_node].get('terrain')
+
+    def get_owner(self, building_node):
+        if building_node not in self.graph.nodes:
+            raise ValueError("Node no exist")
+        if self.graph.nodes[building_node].get('node_type') != NodeType.BUILDING:
+            raise ValueError("Node is not a building node.")
+        return self.graph.nodes[building_node].get('owner')
+    
+    def get_building_type(self, building_node):
+        if building_node not in self.graph.nodes:
+            raise ValueError("Node no exist")
+        if self.graph.nodes[building_node].get('node_type') != NodeType.BUILDING:
+            raise ValueError("Node is not a building node.")
+        return self.graph.nodes[building_node].get('building_type')
+    
+    def get_adjacent_building_nodes(self, land_node):
+        """yesa"""
+        if not self.graph.nodes[land_node].get('node_type') == NodeType.LAND:
+            raise ValueError("Not a land node.")
+        adjacent_nodes = set()
+        for neighbor in self.graph.neighbors(land_node):
+            if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING:
+                adjacent_nodes.add(neighbor)
+        return list(adjacent_nodes)
+
     def get_desert_position(self):
         """Returns the position of the desert tile."""
         for node in self.graph.nodes:
@@ -192,6 +238,8 @@ class Board:
                             connected_node2 = edge[1]
                             connected_nodes = [connected_node1, connected_node2]
                             for connected_node in connected_nodes:
+                                if self.graph.nodes[connected_node].get('owner') != 0:
+                                    continue
                                 no_adjacent_buildings = True
                                 for neighbor in self.graph.neighbors(connected_node):
                                     if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING and self.graph.nodes[neighbor].get('owner') != 0:   # Check for adjacent buildings  

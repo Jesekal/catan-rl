@@ -1,5 +1,5 @@
 from board import Board
-from graph import NodeType, Resource, BuildingType, get_building_node_name, DevelopmentCardType, TurnAction, Phase
+from graph import NodeType, Resource, BuildingType, get_building_node_name, DevelopmentCardType, TurnAction, Phase, TileType
 import random
 
 class Game:
@@ -52,6 +52,10 @@ class Game:
         Returnerar: obs, reward, done, info
         """
         player_id = self.current_player
+        if self.phase == Phase.ROLL_DICE:
+            self.roll_dice()
+            # returnera observation med dice_roll etc
+            return self._get_obs(), 0, False, {"rolled": self.dice_roll}
 
         # 1. Applicera draget (du får definiera logiken i Board/Game)
         self.apply_action(player_id, action)
@@ -62,9 +66,9 @@ class Game:
         # 3. Kolla om spelet är klart
         done = self.is_terminal()
 
-        # 4. Byt till nästa spelare om spelet fortsätter
-        if not done:
-            self.current_player = (self.current_player % self.number_of_players) + 1
+        # # 4. Byt till nästa spelare om spelet fortsätter
+        # if not done:
+        #     self.current_player = (self.current_player % self.number_of_players) + 1
 
         # 5. Observation + debug-info
         obs = self._get_obs()
@@ -153,6 +157,51 @@ class Game:
                     self.players[player_to_steal_from]["resources"][stolen_resource] -= 1
                     self.players[player_id]["resources"][stolen_resource] += 1
 
+    def roll_dice(self):
+        dice1 = random.randint(1,6)
+        dice2 = random.randint(1,6)
+        self.dice_roll = dice1 + dice2
+
+        if self.dice_roll == 7:
+            self.discard_pending = {}
+            for pid, data in self.players.items():
+                total_cards = sum(data["resources"].values())
+                if total_cards > 7:
+                    self.discard_pending[pid] = total_cards // 2  
+
+           
+            self.phase = Phase.DISCARD
+            return  
+
+        for land_node in self.board.get_land_nodes_by_value(self.dice_roll):
+            terrain = self.board.get_terrain_of_node(land_node)
+            for b_node in self.board.get_adjacent_building_nodes(land_node):
+                owner = self.board.get_owner(b_node)
+                building_type = self.board.get_building_type(b_node)
+                if owner is not 0:
+                    amount = 2 if building_type == BuildingType.CITY else 1
+                    resource = self.terrain_to_resource(terrain)
+                    self.players[owner]["resources"][resource] += amount 
+        self.phase = Phase.NORMAL_TURN
+
+    def terrain_to_resource(self, terrain):
+        match terrain:
+            case TileType.DESERT:
+                return None
+            case TileType.PASTURE:
+                return Resource.SHEEP
+            case TileType.FOREST:
+                return Resource.WOOD
+            case TileType.FIELD:
+                return Resource.WHEAT
+            case TileType.MOUNTAIN:
+                return Resource.ORE
+            case TileType.HILL:
+                return Resource.BRICK
+            
+            case _:
+                raise ValueError(f"Unknown terrain: {terrain}")
+            
 
     def place_initial_building(self, player_id, nodes):
         building_node = nodes[0]
@@ -410,7 +459,7 @@ class Game:
     def next_round(self):
         self.round += 1
         if self.round >= 2:         # Update phase when out of initial placements
-            self.phase = Phase.NORMAL_TURN
+            self.phase = Phase.ROLL_DICE
 
         self.update_board() 
 
@@ -502,27 +551,27 @@ class Game:
 if __name__ == "__main__":
     game_state = Game(number_of_players=4)
 
-    # Setup resurser
-    game_state.give_resource(1, Resource.WOOD, 1)   # player 1 har wood
-    game_state.give_resource(2, Resource.ORE, 1)    # player 2 har ore
+    # # Setup resurser
+    # game_state.give_resource(1, Resource.WOOD, 1)   # player 1 har wood
+    # game_state.give_resource(2, Resource.ORE, 1)    # player 2 har ore
 
-    print("== Före trade ==")
-    print(f"Player 1: {game_state.players[1]['resources']}")
-    print(f"Player 2: {game_state.players[2]['resources']}")
+    # print("== Före trade ==")
+    # print(f"Player 1: {game_state.players[1]['resources']}")
+    # print(f"Player 2: {game_state.players[2]['resources']}")
 
-    # Player 1 initierar trade: 1 wood mot 1 ore
-    offer = {Resource.WOOD: 1}
-    request = {Resource.ORE: 1}
-    deal = (offer, request)
-    game_state.trade_player(1, deal)
+    # # Player 1 initierar trade: 1 wood mot 1 ore
+    # offer = {Resource.WOOD: 1}
+    # request = {Resource.ORE: 1}
+    # deal = (offer, request)
+    # game_state.trade_player(1, deal)
 
-    # Player 2 svarar JA
-    result = game_state.respond_trade(2, accept=True)
-    print(f"\nTrade result: {result}")
+    # # Player 2 svarar JA
+    # result = game_state.respond_trade(2, accept=True)
+    # print(f"\nTrade result: {result}")
 
-    print("\n== Efter trade ==")
-    print(f"Player 1: {game_state.players[1]['resources']}")
-    print(f"Player 2: {game_state.players[2]['resources']}")
+    # print("\n== Efter trade ==")
+    # print(f"Player 1: {game_state.players[1]['resources']}")
+    # print(f"Player 2: {game_state.players[2]['resources']}")
 
     # # Ge spelare 1 och 2 lite resurser
     # game_state.give_resource(1, Resource.WOOD, 5)

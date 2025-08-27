@@ -1,4 +1,4 @@
-from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure, NodeType, Resource, BuildingType, TurnAction, DevelopmentCardType
+from graph import setup_board, TileType, add_building, add_road, get_building_node_name, print_graph_structure, NodeType, Resource, BuildingType, TurnAction, DevelopmentCardType, Phase
 import itertools
 
 class Board:
@@ -143,6 +143,18 @@ class Board:
 
         return moves
     
+    def move_robber_actions(self, player_id):
+        """Returns a list of possible actions when moving the robber"""
+        legal_moves = []
+        for node in self.graph.nodes:  # All land nodes except current and last robber position
+            if self.graph.nodes[node].get('node_type') == NodeType.LAND and node != self.robber_position and node != self.last_robber_position:
+                adjacent_players = self.get_adjacent_players(node)
+                if not adjacent_players:
+                    legal_moves.append((TurnAction.PLACE_ROBBER, node, 0))
+                for player in adjacent_players:
+                    legal_moves.append((TurnAction.PLACE_ROBBER, node, player))
+        return legal_moves
+    
     def legal_turn_moves(self, player_id, phase):
         """Returns a list of legal moves for the given player."""
         if player_id not in self.players:
@@ -153,156 +165,151 @@ class Board:
         legal_moves = []
 
         # Add moves for building actions
-        for action in afforded_cards:
-            if action == BuildingType.CITY:
-                for node in self.graph.nodes:
-                    if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == player_id and self.graph.nodes[node].get('building_type') == BuildingType.VILLAGE:
-                        legal_moves.append((TurnAction.BUILD_CITY, node))
-            elif action == BuildingType.DEVELOPMENT_CARD and self.cards:    # Deck is non-empty
-                legal_moves.append((TurnAction.BUY_DEVELOPMENT_CARD, None))
-            elif action == BuildingType.ROAD:
-                for edge in self.graph.edges:
-                    if self.graph.edges[edge].get('owner') == player_id:
-                        connected_node1 = edge[0]
-                        connected_node2 = edge[1]
-                        connected_nodes = [connected_node1, connected_node2]
-                        for connected_node in connected_nodes:
-                            for neighbor in self.graph.neighbors(connected_node):
-                                if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING:
-                                    road_edge = self.graph.get_edge_data(connected_node, neighbor)
-                                    if road_edge.get('owner') == 0:
-                                        legal_moves.append((TurnAction.BUILD_ROAD, connected_node, neighbor))
-            elif action == BuildingType.VILLAGE:
-                for edge in self.graph.edges:
-                    if self.graph.edges[edge].get('owner') == player_id:
-                        connected_node1 = edge[0]
-                        connected_node2 = edge[1]
-                        connected_nodes = [connected_node1, connected_node2]
-                        for connected_node in connected_nodes:
-                            no_adjacent_buildings = True
-                            for neighbor in self.graph.neighbors(connected_node):
-                                if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING and self.graph.nodes[neighbor].get('owner') != 0:   # Check for adjacent buildings  
-                                    no_adjacent_buildings = False   
-                                    break
-                            if no_adjacent_buildings:
-                                legal_moves.append((TurnAction.BUILD_VILLAGE, connected_node))
-            
-        # Add moves for playing development cards
-        for development_card in self.players[player_id].get("development_cards", []):
-            # If development_card is a list like (DevelopmentCardType.KNIGHT, 0), extract the type
-            card_type = development_card[0] if isinstance(development_card, list) else development_card
-            if development_card[1] != 0: # 0 means that it can be played this turn
-                continue
-            if card_type == DevelopmentCardType.KNIGHT:
-                for node in self.graph.nodes:  # All land nodes except current and last robber position
-                    if self.graph.nodes[node].get('node_type') == NodeType.LAND and node != self.robber_position and node != self.last_robber_position:
-                        adjacent_players = self.get_adjacent_players(node)
-                        if not adjacent_players:
-                            legal_moves.append((TurnAction.PLAY_KNIGHT, node, 0))
-                        for player in adjacent_players:
-                            legal_moves.append((TurnAction.PLAY_KNIGHT, node, player))
-            elif card_type == DevelopmentCardType.ROAD_BUILDING:
-                road_building_moves = []
-                # Choose first road build move
-                for edge in self.graph.edges:
-                    if self.graph.edges[edge].get('owner') == player_id: # Owned by player
-                        connected_node1 = edge[0]
-                        connected_node2 = edge[1]
-                        connected_nodes = [connected_node1, connected_node2]
-                        for connected_node in connected_nodes:
-                            for neighbor in self.graph.neighbors(connected_node):
-                                if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING:
-                                    road_edge = self.graph.get_edge_data(connected_node, neighbor)
-                                    if road_edge.get('owner') == 0:
-                                        road_building_moves.append((TurnAction.PLAY_ROAD_BUILDING, connected_node, neighbor))
-                # Choose second road build move
-                for i in range(len(road_building_moves)):
-                    grapgh_after_first_road = self.graph.copy()
-                    first_road = road_building_moves[i]
-                    grapgh_after_first_road.edges[(first_road[1], first_road[2])]['owner'] = player_id
-                    for edge in grapgh_after_first_road.edges:
-                        if grapgh_after_first_road.edges[edge].get('owner') == player_id: # Owned by player
+        if phase == Phase.NORMAL_TURN:
+            for action in afforded_cards:
+                if action == BuildingType.CITY:
+                    for node in self.graph.nodes:
+                        if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == player_id and self.graph.nodes[node].get('building_type') == BuildingType.VILLAGE:
+                            legal_moves.append((TurnAction.BUILD_CITY, node))
+                elif action == BuildingType.DEVELOPMENT_CARD and self.cards:    # Deck is non-empty
+                    legal_moves.append((TurnAction.BUY_DEVELOPMENT_CARD, None))
+                elif action == BuildingType.ROAD:
+                    for edge in self.graph.edges:
+                        if self.graph.edges[edge].get('owner') == player_id:
                             connected_node1 = edge[0]
                             connected_node2 = edge[1]
                             connected_nodes = [connected_node1, connected_node2]
                             for connected_node in connected_nodes:
-                                for neighbor in grapgh_after_first_road.neighbors(connected_node):
-                                    if grapgh_after_first_road.nodes[neighbor].get('node_type') == NodeType.BUILDING:
-                                        road_edge = grapgh_after_first_road.get_edge_data(connected_node, neighbor)
+                                for neighbor in self.graph.neighbors(connected_node):
+                                    if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING:
+                                        road_edge = self.graph.get_edge_data(connected_node, neighbor)
                                         if road_edge.get('owner') == 0:
-                                            legal_moves.append((TurnAction.PLAY_ROAD_BUILDING, first_road[1], first_road[2], connected_node, neighbor))
-                legal_moves.extend(road_building_moves)          
+                                            legal_moves.append((TurnAction.BUILD_ROAD, connected_node, neighbor))
+                elif action == BuildingType.VILLAGE:
+                    for edge in self.graph.edges:
+                        if self.graph.edges[edge].get('owner') == player_id:
+                            connected_node1 = edge[0]
+                            connected_node2 = edge[1]
+                            connected_nodes = [connected_node1, connected_node2]
+                            for connected_node in connected_nodes:
+                                no_adjacent_buildings = True
+                                for neighbor in self.graph.neighbors(connected_node):
+                                    if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING and self.graph.nodes[neighbor].get('owner') != 0:   # Check for adjacent buildings  
+                                        no_adjacent_buildings = False   
+                                        break
+                                if no_adjacent_buildings:
+                                    legal_moves.append((TurnAction.BUILD_VILLAGE, connected_node))
                 
-            elif card_type == DevelopmentCardType.MONOPOLY:
-                for resource in Resource:
-                    legal_moves.append((TurnAction.PLAY_MONOPOLY, resource))
-            elif card_type == DevelopmentCardType.YEAR_OF_PLENTY:
-                for resource1 in Resource:
-                    for resource2 in Resource:
-                        if resource1.value <= resource2.value:
-                            legal_moves.append((TurnAction.PLAY_YEAR_OF_PLENTY, resource1, resource2))
-            elif card_type == DevelopmentCardType.VICTORY_POINT:
-                # Victory point cards are played automatically when drawn
-                continue
+            # Add moves for playing development cards
+            for development_card in self.players[player_id].get("development_cards", []):
+                # If development_card is a list like (DevelopmentCardType.KNIGHT, 0), extract the type
+                card_type = development_card[0] if isinstance(development_card, list) else development_card
+                if development_card[1] != 0: # 0 means that it can be played this turn
+                    continue
+                if card_type == DevelopmentCardType.KNIGHT:
+                    for node in self.graph.nodes:  # All land nodes except current and last robber position
+                        if self.graph.nodes[node].get('node_type') == NodeType.LAND and node != self.robber_position and node != self.last_robber_position:
+                            adjacent_players = self.get_adjacent_players(node)
+                            if not adjacent_players:
+                                legal_moves.append((TurnAction.PLAY_KNIGHT, node, 0))
+                            for player in adjacent_players:
+                                legal_moves.append((TurnAction.PLAY_KNIGHT, node, player))
+                elif card_type == DevelopmentCardType.ROAD_BUILDING:
+                    road_building_moves = []
+                    # Choose first road build move
+                    for edge in self.graph.edges:
+                        if self.graph.edges[edge].get('owner') == player_id: # Owned by player
+                            connected_node1 = edge[0]
+                            connected_node2 = edge[1]
+                            connected_nodes = [connected_node1, connected_node2]
+                            for connected_node in connected_nodes:
+                                for neighbor in self.graph.neighbors(connected_node):
+                                    if self.graph.nodes[neighbor].get('node_type') == NodeType.BUILDING:
+                                        road_edge = self.graph.get_edge_data(connected_node, neighbor)
+                                        if road_edge.get('owner') == 0:
+                                            road_building_moves.append((TurnAction.PLAY_ROAD_BUILDING, connected_node, neighbor))
+                    # Choose second road build move
+                    for i in range(len(road_building_moves)):
+                        grapgh_after_first_road = self.graph.copy()
+                        first_road = road_building_moves[i]
+                        grapgh_after_first_road.edges[(first_road[1], first_road[2])]['owner'] = player_id
+                        for edge in grapgh_after_first_road.edges:
+                            if grapgh_after_first_road.edges[edge].get('owner') == player_id: # Owned by player
+                                connected_node1 = edge[0]
+                                connected_node2 = edge[1]
+                                connected_nodes = [connected_node1, connected_node2]
+                                for connected_node in connected_nodes:
+                                    for neighbor in grapgh_after_first_road.neighbors(connected_node):
+                                        if grapgh_after_first_road.nodes[neighbor].get('node_type') == NodeType.BUILDING:
+                                            road_edge = grapgh_after_first_road.get_edge_data(connected_node, neighbor)
+                                            if road_edge.get('owner') == 0:
+                                                legal_moves.append((TurnAction.PLAY_ROAD_BUILDING, first_road[1], first_road[2], connected_node, neighbor))
+                    legal_moves.extend(road_building_moves)          
+                    
+                elif card_type == DevelopmentCardType.MONOPOLY:
+                    for resource in Resource:
+                        legal_moves.append((TurnAction.PLAY_MONOPOLY, resource))
+                elif card_type == DevelopmentCardType.YEAR_OF_PLENTY:
+                    for resource1 in Resource:
+                        for resource2 in Resource:
+                            if resource1.value <= resource2.value:
+                                legal_moves.append((TurnAction.PLAY_YEAR_OF_PLENTY, resource1, resource2))
+                elif card_type == DevelopmentCardType.VICTORY_POINT:
+                    # Victory point cards are played automatically when drawn
+                    continue
 
-        for resource, amount in self.players[player_id].get("resources", {}).items():
-            if amount >= 4:
-                for resource_type in Resource:
-                    if resource_type != resource:
-                        legal_moves.append((TurnAction.TRADE_BANK, resource, resource_type))
-        
-        available_cards = []
-        for resource, amount in self.players[player_id].get("resources", {}).items():
-            available_cards.extend([resource] * amount)  
+            for resource, amount in self.players[player_id].get("resources", {}).items():
+                if amount >= 4:
+                    for resource_type in Resource:
+                        if resource_type != resource:
+                            legal_moves.append((TurnAction.TRADE_BANK, resource, resource_type))
+            
+            available_cards = []
+            for resource, amount in self.players[player_id].get("resources", {}).items():
+                available_cards.extend([resource] * amount)  
 
-        resources = [r for r, amt in self.players[player_id].get("resouces", {}) if amt > 0]
+            resources = [r for r, amt in self.players[player_id].get("resouces", {}) if amt > 0]
 
-    # --- Offered: 1 or 2 resurce ---
-        for size in [1, 2]:
-            for offered_combo in itertools.combinations_with_replacement(resources, size):
-                offered_counts = {r: offered_combo.count(r) for r in set(offered_combo)}
-                if all(self.players[player_id].get("resouces", {}) >= count for r, count in offered_counts.items()):
-                    # Requested
-                    possible_request_resources = [r for r in Resource if r not in offered_counts]
-                    for req_size in [1, 2]:
-                        for requested_combo in itertools.combinations_with_replacement(possible_request_resources, req_size):
-                            requested_counts = {r: requested_combo.count(r) for r in set(requested_combo)}
-                            # Skip the case where both offered and requested sizes are 2
-                            if size == 2 and req_size == 2:
-                                continue
+        # --- Offered: 1 or 2 resurce ---
+            for size in [1, 2]:
+                for offered_combo in itertools.combinations_with_replacement(resources, size):
+                    offered_counts = {r: offered_combo.count(r) for r in set(offered_combo)}
+                    if all(self.players[player_id].get("resouces", {}) >= count for r, count in offered_counts.items()):
+                        # Requested
+                        possible_request_resources = [r for r in Resource if r not in offered_counts]
+                        for req_size in [1, 2]:
+                            for requested_combo in itertools.combinations_with_replacement(possible_request_resources, req_size):
+                                requested_counts = {r: requested_combo.count(r) for r in set(requested_combo)}
+                                # Skip the case where both offered and requested sizes are 2
+                                if size == 2 and req_size == 2:
+                                    continue
 
-                            legal_moves.append(
-                                (TurnAction.TRADE_PLAYER, offered_counts, requested_counts)
-                            )
+                                legal_moves.append(
+                                    (TurnAction.TRADE_PLAYER, offered_counts, requested_counts)
+                                )
 
-        
+            
 
-        # Legal port trades
-        for node in self.graph.nodes:
-            if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == player_id:
-                for neighbor in self.graph.neighbors(node):
-                    if self.graph.nodes[neighbor].get('node_type') == NodeType.PORT:
-                        port_type = self.graph.nodes[neighbor].get('resource_type')
-                        if port_type == None:  # Generic 3:1 port
-                            for resource in Resource:
-                                if self.players[player_id].get("resources", {}).get(resource, 0) >= 3:
+            # Legal port trades
+            for node in self.graph.nodes:
+                if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == player_id:
+                    for neighbor in self.graph.neighbors(node):
+                        if self.graph.nodes[neighbor].get('node_type') == NodeType.PORT:
+                            port_type = self.graph.nodes[neighbor].get('resource_type')
+                            if port_type == None:  # Generic 3:1 port
+                                for resource in Resource:
+                                    if self.players[player_id].get("resources", {}).get(resource, 0) >= 3:
+                                        for request_resource in Resource:
+                                            if request_resource != resource:
+                                                legal_moves.append((TurnAction.TRADE_PORT, {resource: 3}, {request_resource: 1}))
+                            else:
+                                if self.players[player_id].get("resources", {}).get(port_type, 0) >= 2:
                                     for request_resource in Resource:
-                                        if request_resource != resource:
-                                            legal_moves.append((TurnAction.TRADE_PORT, {resource: 3}, {request_resource: 1}))
-                        else:
-                            if self.players[player_id].get("resources", {}).get(port_type, 0) >= 2:
-                                for request_resource in Resource:
-                                    if request_resource != port_type:
-                                        legal_moves.append((TurnAction.TRADE_PORT, {port_type: 2}, {request_resource: 1}))
-                                
-        # Remove duplicates
-        seen = []
-        for move in legal_moves:
-            if move not in seen:
-                seen.append(move)
-        legal_moves = seen
+                                        if request_resource != port_type:
+                                            legal_moves.append((TurnAction.TRADE_PORT, {port_type: 2}, {request_resource: 1}))
+        
 
-        if phase == 0:  #Start phase
+        if phase == Phase.SETUP:  #Start phase
             # Place a building and a connected road
             for node in self.graph.nodes:
                 if self.graph.nodes[node].get('node_type') == NodeType.BUILDING and self.graph.nodes[node].get('owner') == 0:
@@ -316,6 +323,14 @@ class Board:
                                 legal_moves.append((TurnAction.PLACE_INITIAL_BUILDING, node, neigbor))
         else:
             legal_moves.append((TurnAction.END_TURN, None)) # Allow ending the turn except in start phase
+
+                                  
+        # Remove duplicates
+        seen = []
+        for move in legal_moves:
+            if move not in seen:
+                seen.append(move)
+        legal_moves = seen
         return legal_moves
 
         

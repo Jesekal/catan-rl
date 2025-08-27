@@ -45,6 +45,9 @@ class TurnAction(Enum):
     TRADE_PLAYER = auto()
     PLACE_INITIAL_BUILDING = auto()
     END_TURN = auto()
+    RESPOND_TRADE = auto()
+    DISCARD = auto()
+    PLACE_ROBBER = auto()
 
 class DevelopmentCardType(Enum):
     KNIGHT = auto()
@@ -52,6 +55,14 @@ class DevelopmentCardType(Enum):
     ROAD_BUILDING = auto()
     YEAR_OF_PLENTY = auto()
     MONOPOLY = auto()
+
+class Phase(Enum):
+    NORMAL_TURN = auto()     
+    TRADE_RESPONSE = auto()   
+    DISCARD = auto()         
+    ROBBER_PLACEMENT = auto()  
+    SETUP = auto()            
+
 
 # --- Constants ---
 

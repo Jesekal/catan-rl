@@ -1,5 +1,5 @@
 from board import Board
-from graph import NodeType, Resource, BuildingType, get_building_node_name, DevelopmentCardType, TurnAction
+from graph import NodeType, Resource, BuildingType, get_building_node_name, DevelopmentCardType, TurnAction, Phase
 import random
 
 class Game:
@@ -12,8 +12,10 @@ class Game:
         self.current_player = 1  
         self.robber_position = None
         self.dice_roll = None
-        self.phase = 0
+        self.phase = Phase.SETUP
         self.round = 0
+        self.pending_trade = None
+        self.discard_pending = {}
 
         self.players = {
             pid: {
@@ -114,6 +116,13 @@ class Game:
             case TurnAction.PLACE_INITIAL_BUILDING:
                 self.place_initial_building(player_id, params)
 
+            case TurnAction.DISCARD:
+                discards = action[1]  # ex {Resource.WHEAT: 1, Resource.BRICK: 1}
+                self.discard_cards(player_id, discards)
+                if self.all_discards_done():
+                    self.phase = Phase.ROBBER_PLACEMENT
+
+
             case _:
                 raise ValueError(f"Unknown action: {applied_action}")
         
@@ -125,7 +134,7 @@ class Game:
         self.board.build_settlement(player_id, building_node)
         self.board.build_road(player_id, building_node, road_noad)
 
-        if self.round == 1:
+        if self.round == 1:     #Second initioal building gives adjacent resources
             for land_node in self.board.get_adjacent_land_nodes(building_node):
                 resource = self.board.get_resource(land_node)
                 if resource is not None:
@@ -134,7 +143,54 @@ class Game:
         self.end_turn(player_id)    # Place initialbuilding is THE only allowed action when it is an allowed action. end turn
 
     def trade_player(self, player_id, offer):
-        pass
+        """Create a trade offer for others to accept or decline"""
+        if self.pending_trade is not None:
+            raise ValueError("A trade is already pending.")
+        
+        give_dict = offer[0]
+        take_dict = offer[1]
+
+        self.pending_trade = {
+            "from": player_id,
+            "offer": give_dict,
+            "request": take_dict,
+            "accepted_by": None
+        }
+
+    def respond_trade(self, responder_id, accept: bool):
+        """Player resond to trade with yes other player (accept true) or no (accept false)"""
+        if self.pending_trade is None:
+            raise ValueError("No trade pending.")
+
+        if accept:
+            giver = self.pending_trade["from"]
+            taker = responder_id
+            offer = self.pending_trade["offer"]
+            request = self.pending_trade["request"]
+
+            # check resources
+            for r, a in offer.items():
+                if self.players[giver]["resources"][r] < a:
+                    raise ValueError("Initiator lacks resources.")
+            for r, a in request.items():
+                if self.players[taker]["resources"][r] < a:
+                    raise ValueError("Responder lacks resources.")
+
+            # execute swap
+            for r, a in offer.items():
+                self.players[giver]["resources"][r] -= a
+                self.players[taker]["resources"][r] += a
+            for r, a in request.items():
+                self.players[giver]["resources"][r] += a
+                self.players[taker]["resources"][r] -= a
+
+            self.pending_trade = None
+            return True
+
+        else:
+            # simply decline
+            return False
+
 
     def play_year_of_plenty(self, player_id, wished_resources):
         for resource in wished_resources:
@@ -245,7 +301,7 @@ class Game:
         player_to_steal_from = params[1]
         if player_to_steal_from != 0:   # Is a player
             if player_to_steal_from in self.players and player_to_steal_from != player_id:
-                # Gather all resources the victim has (repeat for each card)
+                # Gather all resources the victim has
                 victim_resources = []
                 for resource, count in self.players[player_to_steal_from]["resources"].items():
                     victim_resources.extend([resource] * count)
@@ -258,6 +314,50 @@ class Game:
                 if card[0] == DevelopmentCardType.KNIGHT and card[1] == 0:
                     self.players[player_id]["development_cards"].remove(card)
                     break
+
+    def trigger_discard(self):
+        self.discard_pending = {}
+        for pid, pdata in self.players.items():
+            total = sum(pdata["resources"].values())
+            if total > 7:
+                to_discard = total // 2
+                self.discard_pending[pid] = to_discard
+        
+        if self.discard_pending:
+            self.phase = Phase.DISCARD
+        else:
+            self.phase = Phase.ROBBER_PLACEMENT
+
+    def generate_discard_combinations(self, player_id, need):
+        resources = self.players[player_id]["resources"]
+        legal = []
+        for res, amount in resources.items():
+            if amount >= 1:
+                legal.append((TurnAction.DISCARD, {res: 1}))
+        return legal
+    
+    def discard_cards(self, player_id, discards):
+        need = self.discard_pending.get(player_id, 0)
+        if need <= 0:
+            raise ValueError(f"Player {player_id} has nothing to discard.")
+
+        total = sum(discards.values())
+        if total > need:
+            raise ValueError("Discarding too many cards.")
+
+        for res, amt in discards.items():
+            if self.players[player_id]["resources"][res] < amt:
+                raise ValueError("Tried to discard more than player owns.")
+            self.players[player_id]["resources"][res] -= amt
+        
+        self.discard_pending[player_id] -= total
+        if self.discard_pending[player_id] == 0:
+            del self.discard_pending[player_id]
+
+    def all_discards_done(self):
+        return not self.discard_pending 
+
+
 
 
 
@@ -275,7 +375,7 @@ class Game:
     def next_round(self):
         self.round += 1
         if self.round >= 2:         # Update phase when out of initial placements
-            self.phase = 1
+            self.phase = Phase.NORMAL_TURN
 
         self.update_board() 
 
@@ -299,7 +399,30 @@ class Game:
         if player_id not in self.players:
             raise ValueError(f"Player {player_id} does not exist.")
         
-        return self.board.legal_turn_moves(player_id, self.phase)
+        if self.phase == Phase.NORMAL_TURN or Phase.SETUP:
+            return self.board.legal_turn_moves(player_id, self.phase)
+        
+        elif self.phase == Phase.TRADE_RESPONSE:
+            if player_id == self.pending_trade["from"]:
+                return []
+            else:   # The players who did not initiate the trade
+                return [
+                    (TurnAction.RESPOND_TRADE, True),
+                    (TurnAction.RESPOND_TRADE, False)
+                ]
+
+        elif self.phase == Phase.DISCARD:
+            need = self.discard_pending.get(player_id, 0)
+            if need > 0:
+                return self.generate_discard_combinations(player_id, need)
+            else:
+                return []
+
+        elif self.phase == Phase.ROBBER_PLACEMENT:
+            if player_id == self.current_player:    # Player that rolled the 7 will move robber
+                return self.board.move_robber_actions(player_id)
+            else:
+                return []
     
     def give_resource(self, player_id, resource_type, amount):
         """Gives a specified amount of a resource to a player."""
@@ -343,6 +466,32 @@ class Game:
     
 if __name__ == "__main__":
     game_state = Game(number_of_players=4)
+
+    # Ge spelare 1 och 2 lite resurser
+    game_state.give_resource(1, Resource.WOOD, 5)
+    game_state.give_resource(1, Resource.BRICK, 4)
+    game_state.give_resource(2, Resource.ORE, 9)
+
+    # Trigga discard manuellt
+    game_state.trigger_discard()
+
+    print("=== Efter trigger_discard ===")
+    print("Discard pending:", game_state.discard_pending)
+    print("Phase:", game_state.phase)
+
+    # Spelare 1 discardar 1 wood
+    move = (TurnAction.DISCARD, {Resource.WOOD: 1})
+    game_state.apply_action(1, move)
+
+    # Spelare 2 discardar 2 ore
+    move = (TurnAction.DISCARD, {Resource.ORE: 2})
+    game_state.apply_action(2, move)
+
+    print("=== Efter discards ===")
+    for pid in game_state.players:
+        print(f"Player {pid} resources:", game_state.players[pid]["resources"])
+    print("Discard pending:", game_state.discard_pending)
+    print("Phase:", game_state.phase)
     # game_state.next_round()
     # game_state.next_round()
     # game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
@@ -369,35 +518,35 @@ if __name__ == "__main__":
         # game_state.apply_action(game_state.current_player, move)
 
 
-    while True:
-        print("\n --------------------------- \n")
+    # while True:
+    #     print("\n --------------------------- \n")
         
-        for action in game_state.legal_moves(game_state.current_player):
-            if action[0] == TurnAction.END_TURN or action[0] == TurnAction.PLACE_INITIAL_BUILDING:
-                game_state.apply_action(game_state.current_player, action)
-                break
+    #     for action in game_state.legal_moves(game_state.current_player):
+    #         if action[0] == TurnAction.END_TURN or action[0] == TurnAction.PLACE_INITIAL_BUILDING:
+    #             game_state.apply_action(game_state.current_player, action)
+    #             break
 
-        if game_state.current_player == 1:
-            break
+    #     if game_state.current_player == 1:
+    #         break
 
-    for p in range(1, 5):
-        print(f"Resource palyer {p} {game_state.players[p]['resources']}")
-    print(f"Resource player one?? {game_state.players[1]['resources']}")
+    # for p in range(1, 5):
+    #     print(f"Resource palyer {p} {game_state.players[p]['resources']}")
+    # print(f"Resource player one?? {game_state.players[1]['resources']}")
 
-    while True:
-        print("\n --------------------------- \n")
+    # while True:
+    #     print("\n --------------------------- \n")
         
-        for action in game_state.legal_moves(game_state.current_player):
-            if action[0] == TurnAction.END_TURN or action[0] == TurnAction.PLACE_INITIAL_BUILDING:
-                game_state.apply_action(game_state.current_player, action)
-                break
+    #     for action in game_state.legal_moves(game_state.current_player):
+    #         if action[0] == TurnAction.END_TURN or action[0] == TurnAction.PLACE_INITIAL_BUILDING:
+    #             game_state.apply_action(game_state.current_player, action)
+    #             break
 
-        if game_state.current_player == 1:
-            break
+    #     if game_state.current_player == 1:
+    #         break
 
-    for p in range(1, 5):
-        print(f"Resource palyer {p} {game_state.players[p]['resources']}")
-    print(f"Resource player one?? {game_state.players[1]['resources']}")
+    # for p in range(1, 5):
+    #     print(f"Resource palyer {p} {game_state.players[p]['resources']}")
+    # print(f"Resource player one?? {game_state.players[1]['resources']}")
     # #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)

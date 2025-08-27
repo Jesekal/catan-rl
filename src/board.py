@@ -78,6 +78,38 @@ class Board:
         self.last_robber_position = self.robber_position
         self.robber_position = new_position
 
+    def get_resource(self, land_node):
+        """Returns the resource type of a land node."""
+        if land_node not in self.graph.nodes:
+            raise ValueError("Node does not exist in the graph.")
+        if self.graph.nodes[land_node].get('node_type') != NodeType.LAND:
+            raise ValueError("Node is not a land node.")
+        terrain = self.graph.nodes[land_node].get('terrain')
+        if terrain == TileType.FOREST:
+            return Resource.WOOD
+        elif terrain == TileType.HILL:
+            return Resource.BRICK
+        elif terrain == TileType.MOUNTAIN:
+            return Resource.ORE
+        elif terrain == TileType.FIELD:
+            return Resource.WHEAT
+        elif terrain == TileType.PASTURE:
+            return Resource.SHEEP
+        elif terrain == TileType.DESERT:
+            return None
+        else:
+            raise ValueError("Unknown terrain type.")
+
+    def get_adjacent_land_nodes(self, building_node):
+        """Returna a list of land nodes that are adjacent to a specified building node"""
+        if not self.graph.nodes[building_node].get('node_type') == NodeType.BUILDING:
+            raise ValueError("Not a building node.")
+        adjacent_lands = set()
+        for neighbor in self.graph.neighbors(building_node):
+            if self.graph.nodes[neighbor].get('node_type') == NodeType.LAND:
+                adjacent_lands.add(neighbor)
+        return list(adjacent_lands)
+
     def get_adjacent_players(self, land_node):
         """Returns a list of players who got a building adjacent to a land node"""
         if not self.graph.nodes[land_node].get('node_type') == NodeType.LAND:

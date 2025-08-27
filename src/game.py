@@ -108,10 +108,33 @@ class Game:
             case TurnAction.PLAY_YEAR_OF_PLENTY:
                 self.play_year_of_plenty(player_id, params)
 
+            case TurnAction.TRADE_PLAYER:
+                self.trade_player(player_id, params)
+
+            case TurnAction.PLACE_INITIAL_BUILDING:
+                self.place_initial_building(player_id, params)
+
             case _:
                 raise ValueError(f"Unknown action: {applied_action}")
         
         self.update_board()
+
+    def place_initial_building(self, player_id, nodes):
+        building_node = nodes[0]
+        road_noad = nodes[1]
+        self.board.build_settlement(player_id, building_node)
+        self.board.build_road(player_id, building_node, road_noad)
+
+        if self.round == 1:
+            for land_node in self.board.get_adjacent_land_nodes(building_node):
+                resource = self.board.get_resource(land_node)
+                if resource is not None:
+                    self.players[player_id]["resources"][resource] += 1
+        
+        self.end_turn(player_id)    # Place initialbuilding is THE only allowed action when it is an allowed action. end turn
+
+    def trade_player(self, player_id, offer):
+        pass
 
     def play_year_of_plenty(self, player_id, wished_resources):
         for resource in wished_resources:
@@ -320,10 +343,10 @@ class Game:
     
 if __name__ == "__main__":
     game_state = Game(number_of_players=4)
-    game_state.next_round()
-    game_state.next_round()
-    game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
-    game_state.board.build_road(2, get_building_node_name(2, 2), get_building_node_name(1, 2))
+    # game_state.next_round()
+    # game_state.next_round()
+    # game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
+    # game_state.board.build_road(2, get_building_node_name(2, 2), get_building_node_name(1, 2))
 
 
     # game_state.give_resource(1, Resource.WOOD, 4)
@@ -335,21 +358,46 @@ if __name__ == "__main__":
     # game_state.give_resource(3, Resource.ORE, 0)
     # game_state.give_resource(4, Resource.ORE, 1)
     
-    game_state.give_development_card(1, DevelopmentCardType.YEAR_OF_PLENTY)
+    #game_state.give_development_card(1, DevelopmentCardType.YEAR_OF_PLENTY)
+
+
+            
+        # print(f"Resource player one?? {game_state.players[1]['resources']}")
+        # nrmove = 21
+        # move = game_state.legal_moves(game_state.current_player)[nrmove]
+        # print(move)
+        # game_state.apply_action(game_state.current_player, move)
+
 
     while True:
+        print("\n --------------------------- \n")
+        
         for action in game_state.legal_moves(game_state.current_player):
-            if action[0] == TurnAction.END_TURN:
+            if action[0] == TurnAction.END_TURN or action[0] == TurnAction.PLACE_INITIAL_BUILDING:
                 game_state.apply_action(game_state.current_player, action)
-        print(f"Legal moves for current player ({game_state.current_player}): {game_state.legal_moves(game_state.current_player)}")
+                break
+
         if game_state.current_player == 1:
             break
+
+    for p in range(1, 5):
+        print(f"Resource palyer {p} {game_state.players[p]['resources']}")
+    print(f"Resource player one?? {game_state.players[1]['resources']}")
+
+    while True:
+        print("\n --------------------------- \n")
         
-    game_state.apply_action(game_state.current_player, game_state.legal_moves(game_state.current_player)[7])
+        for action in game_state.legal_moves(game_state.current_player):
+            if action[0] == TurnAction.END_TURN or action[0] == TurnAction.PLACE_INITIAL_BUILDING:
+                game_state.apply_action(game_state.current_player, action)
+                break
 
+        if game_state.current_player == 1:
+            break
 
-
-    print(f"Resource player one?? {game_state.players[game_state.current_player]['resources']}")
+    for p in range(1, 5):
+        print(f"Resource palyer {p} {game_state.players[p]['resources']}")
+    print(f"Resource player one?? {game_state.players[1]['resources']}")
     # #game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(2, DevelopmentCardType.VICTORY_POINT)
     # game_state.give_development_card(1, DevelopmentCardType.MONOPOLY)

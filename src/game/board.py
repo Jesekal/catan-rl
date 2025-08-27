@@ -292,7 +292,7 @@ class Board:
                                             road_edge = grapgh_after_first_road.get_edge_data(connected_node, neighbor)
                                             if road_edge.get('owner') == 0:
                                                 legal_moves.append((TurnAction.PLAY_ROAD_BUILDING, first_road[1], first_road[2], connected_node, neighbor))
-                    legal_moves.extend(road_building_moves)          
+       
                     
                 elif card_type == DevelopmentCardType.MONOPOLY:
                     for resource in Resource:

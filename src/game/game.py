@@ -24,7 +24,7 @@ class Game:
                 "roads": 0,
                 "villages": 0,
                 "cities": 0,
-                "victory_points": 0,
+                "victory_points": 2,        #2 settlements
                 "has_longest_road": False,
                 "has_largest_army": False,
                 "knights_played": 0,
@@ -379,6 +379,8 @@ class Game:
         card = self.dev_deck.pop()
         # Newly bought card is stored but usually not playable this turn
         self.players[player_id]["development_cards"].append([card, 1])      # Cards until playable (1 in catan rules)
+        if card == DevelopmentCardType.VICTORY_POINT:
+            self.players[player_id]['victory_points'] += 1
 
     def play_knight(self, player_id, params):
         self.board.move_robber(params[0])   # Land node
@@ -448,20 +450,34 @@ class Game:
     def end_turn(self, player_id):
         for card in self.players[player_id]["development_cards"]:
             card[1] = 0     # Set card to playable
-        
-        # Rotate to next player
-        self.current_player = (self.current_player % self.number_of_players) + 1
-        # If back to player one, next phase
-        if self.current_player == 1:
-            self.next_round()
+
+        if self.phase == Phase.SETUP:
+            if self.round == 0:
+                # First round - forward order
+                self.current_player = (self.current_player % self.number_of_players) + 1
+                if self.current_player == 1:
+                    self.next_round()
+            else:
+                # Second round - reverse order
+                self.current_player -= 1
+                if self.current_player < 1:
+                    self.current_player = self.number_of_players
+                    self.next_round()
+        else:
+            # Normal phase
+            self.current_player = (self.current_player % self.number_of_players) + 1
+            self.phase = Phase.ROLL_DICE
+            if self.current_player == 1:
+                self.next_round()
 
 
     def next_round(self):
         self.round += 1
-        if self.round >= 2:         # Update phase when out of initial placements
+        if self.round == 1:
+            # After first setup round, start reverse order with last player
+            self.current_player = self.number_of_players
+        elif self.round >= 2:
             self.phase = Phase.ROLL_DICE
-
-        self.update_board() 
 
 
     def is_terminal(self):

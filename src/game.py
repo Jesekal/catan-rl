@@ -122,11 +122,37 @@ class Game:
                 if self.all_discards_done():
                     self.phase = Phase.ROBBER_PLACEMENT
 
+            case TurnAction.PLACE_ROBBER:
+                self.move_robber(player_id, params)
+
+            case TurnAction.RESPOND_TRADE:
+                accepted = action[1]
+                success = self.respond_trade(player_id, accepted)
+                if accepted and success:
+                    self.phase = Phase.NORMAL_TURN
+                else:
+                    if self.all_players_responded():
+                        self.phase = Phase.NORMAL_TURN
 
             case _:
                 raise ValueError(f"Unknown action: {applied_action}")
         
         self.update_board()
+
+    def move_robber(self, player_id, params):
+        self.board.move_robber(params[0])   # Land node
+        player_to_steal_from = params[1]
+        if player_to_steal_from != 0:   # Is a player
+            if player_to_steal_from in self.players and player_to_steal_from != player_id:
+                # Gather all resources the victim has
+                victim_resources = []
+                for resource, count in self.players[player_to_steal_from]["resources"].items():
+                    victim_resources.extend([resource] * count)
+                if victim_resources:
+                    stolen_resource = random.choice(victim_resources)
+                    self.players[player_to_steal_from]["resources"][stolen_resource] -= 1
+                    self.players[player_id]["resources"][stolen_resource] += 1
+
 
     def place_initial_building(self, player_id, nodes):
         building_node = nodes[0]
@@ -154,13 +180,22 @@ class Game:
             "from": player_id,
             "offer": give_dict,
             "request": take_dict,
-            "accepted_by": None
+            "responses": {pid: None for pid in self.players if pid != player_id}
         }
+
+    def all_players_responded(self):
+        if self.pending_trade is None:
+            return True
+        return all(v is not None for v in self.pending_trade["responses"].values())
 
     def respond_trade(self, responder_id, accept: bool):
         """Player resond to trade with yes other player (accept true) or no (accept false)"""
         if self.pending_trade is None:
             raise ValueError("No trade pending.")
+        if responder_id not in self.pending_trade["responses"]:
+            raise ValueError("This player is not part of the trade response.")
+
+        self.pending_trade["responses"][responder_id] = accept
 
         if accept:
             giver = self.pending_trade["from"]
@@ -467,31 +502,53 @@ class Game:
 if __name__ == "__main__":
     game_state = Game(number_of_players=4)
 
-    # Ge spelare 1 och 2 lite resurser
-    game_state.give_resource(1, Resource.WOOD, 5)
-    game_state.give_resource(1, Resource.BRICK, 4)
-    game_state.give_resource(2, Resource.ORE, 9)
+    # Setup resurser
+    game_state.give_resource(1, Resource.WOOD, 1)   # player 1 har wood
+    game_state.give_resource(2, Resource.ORE, 1)    # player 2 har ore
 
-    # Trigga discard manuellt
-    game_state.trigger_discard()
+    print("== Före trade ==")
+    print(f"Player 1: {game_state.players[1]['resources']}")
+    print(f"Player 2: {game_state.players[2]['resources']}")
 
-    print("=== Efter trigger_discard ===")
-    print("Discard pending:", game_state.discard_pending)
-    print("Phase:", game_state.phase)
+    # Player 1 initierar trade: 1 wood mot 1 ore
+    offer = {Resource.WOOD: 1}
+    request = {Resource.ORE: 1}
+    deal = (offer, request)
+    game_state.trade_player(1, deal)
 
-    # Spelare 1 discardar 1 wood
-    move = (TurnAction.DISCARD, {Resource.WOOD: 1})
-    game_state.apply_action(1, move)
+    # Player 2 svarar JA
+    result = game_state.respond_trade(2, accept=True)
+    print(f"\nTrade result: {result}")
 
-    # Spelare 2 discardar 2 ore
-    move = (TurnAction.DISCARD, {Resource.ORE: 2})
-    game_state.apply_action(2, move)
+    print("\n== Efter trade ==")
+    print(f"Player 1: {game_state.players[1]['resources']}")
+    print(f"Player 2: {game_state.players[2]['resources']}")
 
-    print("=== Efter discards ===")
-    for pid in game_state.players:
-        print(f"Player {pid} resources:", game_state.players[pid]["resources"])
-    print("Discard pending:", game_state.discard_pending)
-    print("Phase:", game_state.phase)
+    # # Ge spelare 1 och 2 lite resurser
+    # game_state.give_resource(1, Resource.WOOD, 5)
+    # game_state.give_resource(1, Resource.BRICK, 4)
+    # game_state.give_resource(2, Resource.ORE, 9)
+
+    # # Trigga discard manuellt
+    # game_state.trigger_discard()
+
+    # print("=== Efter trigger_discard ===")
+    # print("Discard pending:", game_state.discard_pending)
+    # print("Phase:", game_state.phase)
+
+    # # Spelare 1 discardar 1 wood
+    # move = (TurnAction.DISCARD, {Resource.WOOD: 1})
+    # game_state.apply_action(1, move)
+
+    # # Spelare 2 discardar 2 ore
+    # move = (TurnAction.DISCARD, {Resource.ORE: 2})
+    # game_state.apply_action(2, move)
+
+    # print("=== Efter discards ===")
+    # for pid in game_state.players:
+    #     print(f"Player {pid} resources:", game_state.players[pid]["resources"])
+    # print("Discard pending:", game_state.discard_pending)
+    # print("Phase:", game_state.phase)
     # game_state.next_round()
     # game_state.next_round()
     # game_state.board.build_road(1, get_building_node_name(5, 2), get_building_node_name(4, 1))
